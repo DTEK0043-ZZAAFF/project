@@ -13,10 +13,20 @@ enum {log_message, foo_message,};
 static const int led = 13;
 static const int temp = 1;
 static const int configAddress = 0;
+
 LM75 lm75;
 Config config;
-
 CmdMessenger c = CmdMessenger(Serial,',',';','/');
+
+
+// TODO: should be in header file?
+/**
+ * Wrap sendCmd. Internally PyCmdMessenger use Stream class and supports
+ * formatting automatically!
+ */
+template < class T > inline void logger(T caaa) {
+  c.sendCmd(log_message, caaa);
+}
 
 // the setup routine runs once when you press reset:
 void setup() {
@@ -24,12 +34,12 @@ void setup() {
   Serial.begin(9600);
   attach_callbacks();
 
-  log("Starting node....");
+  logger("Starting node....");
 
   // read config from EEPROM
   EEPROM.get(configAddress, config);
-  log(config.lm75?"lm75":"no lm75");
-  log(config.thermistor?"thermistor":"no thermistor");
+  logger(config.lm75?"lm75":"no lm75");
+  logger(config.thermistor?"thermistor":"no thermistor");
 
   if (config.thermistor) {
     // setup thermistor
@@ -44,7 +54,7 @@ void setup() {
   // initialize the digital pin as an output.
   pinMode(led, OUTPUT);
 
-  log("Init done");
+  logger("Init done");
 }
 
 // the loop routine runs over and over again forever:
@@ -59,20 +69,16 @@ void loop() {
   if (config.thermistor) {
     int value = analogRead(A0);
     float temp = temperature(resistance(value));
-    char buf[100];
-    dtostrf(temp, 5, 2, buf);
 
-    log("temp(thermistor): ");
-    log(buf);
+    logger("temp(thermistor): ");
+    logger(temp);
   }
 
   if (config.lm75) {
     float temp = lm75.temp();
-    char buf[100];
-    dtostrf(temp, 5, 2, buf);
 
-    log("temp(lm75): ");
-    log(buf);
+    logger("temp(lm75): ");
+    logger(temp);
   }
 }
 
@@ -90,8 +96,4 @@ void attach_callbacks() {
 
 void nada() {
 
-}
-
-void log(const char* caaa) {
-  c.sendCmd(log_message, caaa);
 }

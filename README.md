@@ -23,6 +23,8 @@
 # Gateway
 Install python 2.7 and pySerial. Then just run foo.py
 
+E.g. `c:\Python27\Scripts\pip.exe install c:\Users\<username>\Downloads\pyserial-3.3-py2.py3-none-any.whl` as admin
+
 # Notes
 ## Fixed version of PyCmdMessenger
 Port to 2.7 was broken. Fixed version: https://github.com/DTEK0043-ZZAAFF/PyCmdMessenger/tree/python27
