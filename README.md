@@ -23,7 +23,8 @@
 # Gateway
 Install python 2.7 and pySerial. Then just run foo.py
 
-E.g. `c:\Python27\Scripts\pip.exe install c:\Users\<username>\Downloads\pyserial-3.3-py2.py3-none-any.whl` as admin
+* `c:\Python27\Scripts\pip.exe install c:\Users\<username>\Downloads\pyserial-3.3-py2.py3-none-any.whl` as admin
+* `c:\Python27\Scripts\pip.exe install requests` as admin to install requests library
 
 # Notes
 ## Fixed version of PyCmdMessenger
