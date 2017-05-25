@@ -52,10 +52,10 @@ def main():
                 print("{0}: {1}".format(datetime.now().isoformat(), msg))
             elif message_type is "send_temp":
                 print("{0}: Temperature: {1}".format(datetime.now().isoformat(), msg))
-                online and requests.post(api_url + "/temperatures", json={"node": "node_url", "value": msg})
+                online and requests.post(api_url + "/temperatures", json={"node": node_url, "value": msg})
             elif message_type is "send_pir":
                 print("{0}: PIR detection!".format(datetime.now().isoformat()))
-                online and requests.post(api_url + "/pirs", json={"node": "node_url"})
+                online and requests.post(api_url + "/pirs", json={"node": node_url})
 
 def init_rest():
     r = requests.get(api_url)
