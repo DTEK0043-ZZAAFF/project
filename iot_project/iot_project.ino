@@ -2,7 +2,7 @@
 #include <Wire.h>
 #include <LM75.h>
 
-enum {send_log, send_temp, send_pir, request_lm75};
+enum {send_log, send_temp, send_pir, request_lm75, send_mock};
 
 static const int led = 13;
 static const int temp = 1;
@@ -65,6 +65,7 @@ float temperature(float res) {
 //callbacks
 void attach_callbacks() {
   c.attach(request_lm75, on_request_lm75);
+  c.attach(send_mock, on_send_mock);
   c.attach(on_unknown_request);
 }
 
@@ -75,4 +76,9 @@ void on_unknown_request() {
 void on_request_lm75() {
   enable_lm75 = true;
   logger("Turned on lm75");
+}
+
+void on_send_mock() {
+  logger("on_send_mock");
+  logger(c.readStringArg());
 }
