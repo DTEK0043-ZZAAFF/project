@@ -2,7 +2,7 @@
 #include <Wire.h>
 #include <LM75.h>
 
-enum {send_log, send_temp, send_pir, request_lm75, send_mock};
+enum {send_log, send_temp, send_pir, request_lm75, send_mock, request_uid_status, send_uid_status,};
 
 static const int led = 13;
 static const int temp = 1;
@@ -66,6 +66,7 @@ float temperature(float res) {
 void attach_callbacks() {
   c.attach(request_lm75, on_request_lm75);
   c.attach(send_mock, on_send_mock);
+  c.attach(send_uid_status, on_send_uid_status);
   c.attach(on_unknown_request);
 }
 
@@ -78,7 +79,26 @@ void on_request_lm75() {
   logger("Turned on lm75");
 }
 
+/*
+ * This is for mocking NFC reader because we did not have
+ * hardware access. Real NFC readers have I2C bus and
+ * current libraries uses various ways to get UID
+ */
 void on_send_mock() {
   logger("on_send_mock");
-  logger(c.readStringArg());
+  char[] uid = c.readStringArg()
+
+  // mockup end. uid read from mock. Start unlock check
+  c.sendBinCmd(request_uid_status, uid);
+  //TODO: add logic for timeout and LEDs
+}
+
+void on_send_uid_status() {
+  logger("on_send_uid_status")
+  boolean unlock = c.readBoolArg();
+  if (unlock) {
+    // logic for unlock state
+  } else {
+    // logic for failed state
+  }
 }

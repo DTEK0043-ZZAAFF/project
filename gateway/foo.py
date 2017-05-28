@@ -42,7 +42,9 @@ def main():
                 ["send_temp", "d"],
                 ["send_pir", ""],
                 ["request_lm75", ""],
-                ["send_mock", "s"]]
+                ["send_mock", "s"],
+                ["request_uid_status", "s"],
+                ["send_uid_status", "?"]]
 
     c = PyCmdMessenger.CmdMessenger(arduino, commands)
 
@@ -67,6 +69,11 @@ def main():
                 logger.debug("PIR detection!")
                 online and requests.post(api_url + "/pirs",
                                          json={"node": node_url})
+            elif message_type is "request_uid_status":
+                logger.debug("uid status request: %s", msg)
+                online and requests.get(api_url + "TODO",
+                                       json={"node": node_url})
+                # TODO: we need result
             else:
                 logger.warn("Unknown message_type: %s", message_type)
                 logger.warn("with message: %s", message[1])
@@ -105,7 +112,7 @@ class MsgServer(asyncore.dispatcher):
         self.logger = logging.getLogger("MsgServer")
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.bind((host, port))
-        self.logger.debug("Binding to %s", self.socket.getsockname )
+        self.logger.debug("Binding to %s", self.socket.getsockname)
         self.listen(1)
 
     def handle_accept(self):
