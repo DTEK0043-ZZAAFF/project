@@ -6,8 +6,11 @@ enum {send_log, send_temp, send_pir, request_lm75, send_mock, request_uid_status
 
 static const int led = 13;
 static const int temp = 1;
-static const int configAddress = 0;
+static const int pirPin = 2;
+static const int thermPin = A0;
 static boolean enable_lm75 = false;
+static boolean enable_pir = true;
+static int prev_pir_state = LOW;
 
 LM75 lm75;
 CmdMessenger c = CmdMessenger(Serial,',',';','/');
@@ -25,13 +28,11 @@ void setup() {
   Wire.begin();
   Serial.begin(9600);
   attach_callbacks();
+  delay(100);
 
-  logger("Starting node....");
-
-  // initialize the digital pin as an output.
+  logger("Starting setup() ...");
   pinMode(led, OUTPUT);
-
-  logger("Init done");
+  logger("setup() done");
 }
 
 // the loop routine runs over and over again forever:
@@ -44,12 +45,24 @@ void loop() {
   c.feedinSerialData();
 
   if (!enable_lm75) {
-    int value = analogRead(A0);
+    int value = analogRead(thermPin);
     float temp = temperature(resistance(value));
     c.sendBinCmd(send_temp, temp);
   } else {
     float temp = lm75.temp();
     c.sendBinCmd(send_temp, temp);
+  }
+
+  if (enable_pir) {
+    int val = digitalRead(pirPin);
+    if (prev_pir_state == LOW && val == HIGH) {
+      // rising edge
+      //c.sendCmd(send_pir);
+      prev_pir_state = val;
+    } else if (prev_pir_state == HIGH && val == LOW) {
+      // falling edge
+      prev_pir_state = val;
+    }
   }
 }
 
@@ -86,7 +99,8 @@ void on_request_lm75() {
  */
 void on_send_mock() {
   logger("on_send_mock");
-  char[] uid = c.readStringArg()
+  // note UIDs usually have fixed length
+  char* uid = c.readStringArg();
 
   // mockup end. uid read from mock. Start unlock check
   c.sendBinCmd(request_uid_status, uid);
@@ -94,7 +108,7 @@ void on_send_mock() {
 }
 
 void on_send_uid_status() {
-  logger("on_send_uid_status")
+  logger("on_send_uid_status");
   boolean unlock = c.readBoolArg();
   if (unlock) {
     // logic for unlock state

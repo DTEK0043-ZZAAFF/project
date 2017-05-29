@@ -1,4 +1,5 @@
 from __future__ import print_function
+import argparse
 import sys
 import json
 import logging
@@ -10,9 +11,28 @@ import requests
 
 import PyCmdMessenger
 
-arduino_port = sys.argv[1]
-api_url = sys.argv[2]
-node_name = sys.argv[3]
+# simple command line parsing
+parser = argparse.ArgumentParser()
+parser.add_argument("-v", "--verbosity", type=int, default=0, choices=[0, 1, 2],
+                    help="increase output verbosity")
+parser.add_argument("--online", type=str, metavar="PROTO://ADDRESS:PORT",
+                    help="Enable online storage")
+parser.add_argument("--lm75", action="store_true", help="Use LM75 sensor")
+parser.add_argument("--name", default="default_node", metavar="NAME",
+                    help="Name of the node")
+parser.add_argument("com", default="/dev/ttyACM0", metavar="COM_PORT",
+                    help="COM port to use")
+args = parser.parse_args()
+
+# setup variables
+arduino_port = args.com
+if args.online == None:
+    api_url = None
+    online = False
+else:
+    api_url = args.online
+    online = True
+node_name = args.name
 
 # Usage: c:\Python27\python.exe foo.py COM5 http://localhost:8080/api/v1a bar aa
 # python.exe foo.py <com port> <api address> <node name> <arg to enable lm75>
@@ -29,18 +49,19 @@ def main():
     init_msg_server()
 
     # init REST connection
-    node_url = init_rest()
+    if online:
+        node_url = init_rest()
 
-    if node_url != None:
-        logger.info("Node URL: %s", node_url)
-        online = True
+        if node_url != None:
+            logger.info("Node URL: %s", node_url)
+            online = True
 
     # init arduino and CmdMessenger
     arduino = PyCmdMessenger.ArduinoBoard(arduino_port, baud_rate=9600)
 
     commands = [["send_log", "s"],
                 ["send_temp", "d"],
-                ["send_pir", ""],
+                ["send_pir", None],
                 ["request_lm75", ""],
                 ["send_mock", "s"],
                 ["request_uid_status", "s"],
