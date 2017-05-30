@@ -1,15 +1,16 @@
 from __future__ import print_function
 import argparse
-import sys
+import asyncore
 import json
 import logging
-import threading
-import asyncore
-import socket
-import string
 import requests
+import string
+import sys
+import threading
+import traceback
 
 import PyCmdMessenger
+import MsgServer
 
 # simple command line parsing
 parser = argparse.ArgumentParser()
@@ -34,12 +35,26 @@ else:
     online = True
 node_name = args.name
 
+# init arduino and CmdMessenger
+arduino = PyCmdMessenger.ArduinoBoard(arduino_port, baud_rate=9600)
+
+commands = [["send_log", "s"],
+            ["send_temp", "d"],
+            ["send_pir", None],
+            ["request_lm75", ""],
+            ["send_mock", "s"],
+            ["request_uid_status", "s"],
+            ["send_uid_status", "?"]]
+
+c = PyCmdMessenger.CmdMessenger(arduino, commands)
+
 # Usage: c:\Python27\python.exe foo.py COM5 http://localhost:8080/api/v1a bar aa
 # python.exe foo.py <com port> <api address> <node name> <arg to enable lm75>
 def main():
     global c
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger("main")
+    nodeLogger = logging.getLogger("Arduino")
     online = False
     lm75 = False
     if len(sys.argv) > 4:
@@ -56,19 +71,6 @@ def main():
             logger.info("Node URL: %s", node_url)
             online = True
 
-    # init arduino and CmdMessenger
-    arduino = PyCmdMessenger.ArduinoBoard(arduino_port, baud_rate=9600)
-
-    commands = [["send_log", "s"],
-                ["send_temp", "d"],
-                ["send_pir", None],
-                ["request_lm75", ""],
-                ["send_mock", "s"],
-                ["request_uid_status", "s"],
-                ["send_uid_status", "?"]]
-
-    c = PyCmdMessenger.CmdMessenger(arduino, commands)
-
     # turn on lm75 temperature logging when requested
     if lm75:
         c.send("request_lm75")
@@ -78,16 +80,15 @@ def main():
             message = c.receive()
         except Exception as e:
             message = None
-            logger.error(e)
+            logger.error(traceback.format_exc())
 
         if message == None:
             pass
-            # logger.debug("No message!")
         else:
             message_type = message[0]
             msg = message[1][0]
             if message_type is "send_log":
-                logger.debug(msg)
+                nodeLogger.debug(msg)
             elif message_type is "send_temp":
                 logger.debug("temp: %s", msg)
                 online and requests.post(api_url + "/temperatures",
@@ -128,41 +129,12 @@ def init_rest():
 
 def init_msg_server():
     logging.debug('Serving on localhost:5050')
-    server = MsgServer('localhost', 5050)
+    server = MsgServer.MsgServer('localhost', 5050, c.send)
     loop_thread = threading.Thread(target=asyncore.loop, name="Asyncore Loop")
     loop_thread.daemon = True
     loop_thread.start()
 
-class MsgServer(asyncore.dispatcher):
-    def __init__(self, host, port):
-        asyncore.dispatcher.__init__(self)
-        self.logger = logging.getLogger("MsgServer")
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.bind((host, port))
-        self.logger.debug("Binding to %s", self.socket.getsockname)
-        self.listen(1)
 
-    def handle_accept(self):
-        pair = self.accept()
-        if pair is not None:
-            sock, addr = pair
-            self.logger.debug("Incoming connection from %s", repr(addr))
-            handler = MsgHandler(sock)
-
-class MsgHandler(asyncore.dispatcher):
-    def __init__(self, sock, chunk_size=256):
-        asyncore.dispatcher.__init__(self, sock=sock)
-        self.logger = logging.getLogger("MsgHandler")
-        self.chunk_size = chunk_size
-        self.data_to_write = []
-
-    def handle_read(self):
-        data = self.recv(self.chunk_size)
-        self.logger.debug("Read: %s", repr(data))
-        (command, message) = string.split(data, ":", 1)
-        c.send("send_mock", message)
-        self.send("OK")
-        self.close()
 
 if __name__ == "__main__":
     try:

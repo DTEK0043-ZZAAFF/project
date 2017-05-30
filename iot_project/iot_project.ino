@@ -2,7 +2,13 @@
 #include <Wire.h>
 #include <LM75.h>
 
-enum {send_log, send_temp, send_pir, request_lm75, send_mock, request_uid_status, send_uid_status,};
+enum {send_log,
+  send_temp,
+  send_pir,
+  request_lm75,
+  send_mock,
+  request_uid_status,
+  send_uid_status,};
 
 static const int led = 13;
 static const int temp = 1;
@@ -103,7 +109,9 @@ void on_send_mock() {
   char* uid = c.readStringArg();
 
   // mockup end. uid read from mock. Start unlock check
-  c.sendBinCmd(request_uid_status, uid);
+  // note: this sends pointer address!
+  //c.sendBinCmd(request_uid_status, uid);
+  c.sendCmd(request_uid_status, uid);
   //TODO: add logic for timeout and LEDs
 }
 
