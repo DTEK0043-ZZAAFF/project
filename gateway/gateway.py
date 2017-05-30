@@ -74,9 +74,15 @@ def main():
         c.send("request_lm75")
 
     while True:
-        message = c.receive()
+        try:
+            message = c.receive()
+        except Exception as e:
+            message = None
+            logger.error(e)
+
         if message == None:
-            logger.debug("No message!")
+            pass
+            # logger.debug("No message!")
         else:
             message_type = message[0]
             msg = message[1][0]
