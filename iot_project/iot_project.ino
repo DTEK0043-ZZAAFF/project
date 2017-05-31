@@ -21,8 +21,8 @@ static unsigned long unlockRequestTime;
 static const int unlockRequestTimeout = 10000;
 static boolean lockOpen = false;
 static unsigned long lockOpenTime;
-static const boolean lockOpenTimeout = 5000;
-static int lastMeasure = 0;
+static const int lockOpenTimeout = 5000;
+static unsigned long lastMeasure = 0;
 
 
 
@@ -44,27 +44,23 @@ void setup() {
   attach_callbacks();
   delay(100);
 
-  logger("Starting setup() ...");
+  logger("Starting setup()");
   pinMode(ledPin, OUTPUT);
   logger("setup() done");
 }
 
 // the loop routine runs over and over again forever:
 void loop() {
-  digitalWrite(ledPin, HIGH);   // turn the LED on (HIGH is the voltage level)
   if (unlockRequestPending) {
-    delay(100);
-  } else if (lockOpen) {
-    delay(250);
+    for (int i=1;i<=5;i++) {
+      digitalWrite(ledPin, HIGH);   // turn the LED on (HIGH is the voltage level)
+      delay(50);
+      digitalWrite(ledPin, LOW);    // turn the LED off by making the voltage LOW
+      delay(50);
   }
+}
 
-  digitalWrite(ledPin, LOW);    // turn the LED off by making the voltage LOW
-  if (unlockRequestPending) {
-    delay(100);
-  } else if (lockOpen) {
-    delay(250);
-  }
-
+  // feature. Give some tome to settle before reading Serial
   c.feedinSerialData();
 
   // TODO: measure only when requested?
@@ -92,14 +88,15 @@ void loop() {
     }
   }
 
-  if (unlockRequestPending && unlockRequestTime + unlockRequestTimeout < millis()) {
+  if (unlockRequestPending && (millis() > unlockRequestTime + unlockRequestTimeout)) {
     // timeout for pending unlock request
     unlockRequestPending = false;
     logger("WARNING: unlock request timeouted");
   }
 
-  if (lockOpen && lockOpenTime + lockOpenTimeout < millis()) {
+  if (lockOpen && (millis() > lockOpenTime + lockOpenTimeout)) {
     // timeout open lock
+    digitalWrite(ledPin, LOW);
     lockOpen = false;
   }
 }
@@ -158,7 +155,8 @@ void on_send_uid_status() {
   unlockRequestPending = false;
   if (unlock) {
     lockOpen = true;
-    lockOpenTime = true;
+    lockOpenTime = millis();
+    digitalWrite(ledPin, HIGH);
   } else {
     logger("WARNING: unlisted uid!");
     lockOpen = false; // just lock it
