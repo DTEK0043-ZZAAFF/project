@@ -35,6 +35,9 @@ else:
     online = True
 node_name = args.name
 
+restSuffix = "/api/v1"
+unlockSuffix = "/api/v2"
+
 # init arduino and CmdMessenger
 arduino = PyCmdMessenger.ArduinoBoard(arduino_port, baud_rate=9600)
 
@@ -47,15 +50,15 @@ commands = [["send_log", "s"],
             ["send_uid_status", "?"]]
 
 c = PyCmdMessenger.CmdMessenger(arduino, commands)
+logger = logging.getLogger("main")
+nodeLogger = logging.getLogger("Arduino")
 
 # Usage: c:\Python27\python.exe foo.py COM5 http://localhost:8080/api/v1a bar aa
 # python.exe foo.py <com port> <api address> <node name> <arg to enable lm75>
 def main():
-    global c
+    global c, online
     logging.basicConfig(level=logging.DEBUG)
-    logger = logging.getLogger("main")
-    nodeLogger = logging.getLogger("Arduino")
-    online = False
+
     lm75 = False
     if len(sys.argv) > 4:
         lm75 = True
@@ -70,6 +73,9 @@ def main():
         if node_url != None:
             logger.info("Node URL: %s", node_url)
             online = True
+        else:
+            logger.warn("REST FAIL")
+            online = False
 
     # turn on lm75 temperature logging when requested
     if lm75:
@@ -91,32 +97,39 @@ def main():
                 nodeLogger.debug(msg)
             elif message_type is "send_temp":
                 logger.debug("temp: %s", msg)
-                online and requests.post(api_url + "/temperatures",
+                online and requests.post(api_url + restSuffix + "/temperatures",
                                          json={"node": node_url, "value": msg})
             elif message_type is "send_pir":
                 logger.debug("PIR detection!")
-                online and requests.post(api_url + "/pirs",
+                online and requests.post(api_url + restSuffix + "/pirs",
                                          json={"node": node_url})
             elif message_type is "request_uid_status":
                 logger.debug("uid status request: %s", msg)
-                online and requests.get(api_url + "TODO",
-                                       json={"node": node_url})
+                if online:
+                    r = requests.get(api_url + unlockSuffix + "/checkpermission/"
+                                 + string.split(node_url, "/")[-1] + "/" + msg)
+                    if r.status_code is 200:
+                        logger.debug("sending true")
+                        c.send("send_uid_status", True)
+                    else:
+                        logger.debug("sending false")
+                        c.send("send_uid_status", False)
                 # TODO: we need result
             else:
                 logger.warn("Unknown message_type: %s", message_type)
                 logger.warn("with message: %s", message[1])
 
 def init_rest():
-    r = requests.get(api_url)
+    r = requests.get(api_url + restSuffix)
     if r.status_code != 200:
         logger.error("check API URL")
         return None
 
-    address = api_url + "/nodes/search/findByName?name=" + node_name
+    address = api_url + restSuffix + "/nodes/search/findByName?name=" + node_name
     r = requests.get(address)
     if r.status_code == 404:
         logger.warn("Node not found, creating!")
-        r = requests.post(api_url + "/nodes", json={"name": "node_name"})
+        r = requests.post(api_url + restSuffix + "/nodes", json={"name": "node_name"})
         if r.status_code == 201:
             json_data = json.loads(r.text)
             return json_data["_links"]["self"]["href"]
@@ -124,6 +137,7 @@ def init_rest():
             logger.debug("%s %s", r.status_code, r.text)
             sys.exit("failed")
     else:
+        logger.debug("REST OK")
         json_data = json.loads(r.text)
         return json_data["_links"]["self"]["href"]
 
