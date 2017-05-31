@@ -98,7 +98,7 @@ void loop() {
     logger("WARNING: unlock request timeouted");
   }
 
-  if (lockOpen && lockOpenTime + lockOpenTimeout > millis()) {
+  if (lockOpen && lockOpenTime + lockOpenTimeout < millis()) {
     // timeout open lock
     lockOpen = false;
   }
