@@ -33,12 +33,12 @@ class CmdEvents():
                 listener_fn = self.listeners.get(message[0], self.default_listener)
                 # pass one argument to handler
                 # implementor knows what type argument will be
-                if len(message) == 0:
+                if len(message[1]) == 0:
                     msg = None
-                elif len(message) == 1:
+                elif len(message[1]) == 1:
                     msg = message[1][0]
                 else:
-                    msg = message
+                    msg = message[1]
                 listener_fn(msg)
 
     def default_listener(self):
