@@ -11,6 +11,7 @@ import traceback
 
 import PyCmdMessenger
 import MsgServer
+import CmdEvents
 
 # simple command line parsing
 parser = argparse.ArgumentParser()
@@ -43,7 +44,7 @@ arduino = PyCmdMessenger.ArduinoBoard(arduino_port, baud_rate=9600)
 
 commands = [["send_log", "s"],
             ["send_temp", "d"],
-            ["send_pir", None],
+            ["send_pir", ""],   # TODO: bug here, does not allow None
             ["request_lm75", ""],
             ["send_mock", "s"],
             ["request_uid_status", "s"],
@@ -53,8 +54,6 @@ c = PyCmdMessenger.CmdMessenger(arduino, commands)
 logger = logging.getLogger("main")
 nodeLogger = logging.getLogger("Arduino")
 
-# Usage: c:\Python27\python.exe foo.py COM5 http://localhost:8080/api/v1a bar aa
-# python.exe foo.py <com port> <api address> <node name> <arg to enable lm75>
 def main():
     global c, online
     logging.basicConfig(level=logging.DEBUG)
@@ -74,51 +73,47 @@ def main():
             logger.info("Node URL: %s", node_url)
             online = True
         else:
-            logger.warn("REST FAIL")
+            logger.warn("Failed to initialize REST")
             online = False
 
     # turn on lm75 temperature logging when requested
     if lm75:
         c.send("request_lm75")
 
-    while True:
-        try:
-            message = c.receive()
-        except Exception as e:
-            message = None
-            logger.error(traceback.format_exc())
+    # prepate event handler
+    event_handler = CmdEvents.CmdEvents(c)
+    event_handler.addListener("send_log", on_send_log)
+    event_handler.addListener("send_temp", on_send_temp)
+    event_handler.addListener("send_pir", on_send_pir)
+    event_handler.addListener("request_uid_status", on_request_uid_status)
+    # start event handler (blocks)
+    event_handler.run()
 
-        if message == None:
-            pass
+# callback
+def on_send_log(msg):
+    nodeLogger.debug(msg)
+
+def on_send_temp(msg):
+    logger.debug("temp: %s", msg)
+    online and requests.post(api_url + restSuffix + "/temperatures",
+                             json={"node": node_url, "value": msg})
+
+def on_send_pir(msg):
+    logger.debug("PIR detection!")
+    online and requests.post(api_url + restSuffix + "/pirs",
+                             json={"node": node_url})
+
+def on_request_uid_status(msg):
+    logger.debug("uid status request: %s", msg)
+    if online:
+        r = requests.get(api_url + unlockSuffix + "/checkpermission/"
+                     + string.split(node_url, "/")[-1] + "/" + msg)
+        if r.status_code is 200:
+            c.send("send_uid_status", True)
         else:
-            message_type = message[0]
-            msg = message[1][0]
-            if message_type is "send_log":
-                nodeLogger.debug(msg)
-            elif message_type is "send_temp":
-                logger.debug("temp: %s", msg)
-                online and requests.post(api_url + restSuffix + "/temperatures",
-                                         json={"node": node_url, "value": msg})
-            elif message_type is "send_pir":
-                logger.debug("PIR detection!")
-                online and requests.post(api_url + restSuffix + "/pirs",
-                                         json={"node": node_url})
-            elif message_type is "request_uid_status":
-                logger.debug("uid status request: %s", msg)
-                if online:
-                    r = requests.get(api_url + unlockSuffix + "/checkpermission/"
-                                 + string.split(node_url, "/")[-1] + "/" + msg)
-                    if r.status_code is 200:
-                        logger.debug("sending true")
-                        c.send("send_uid_status", True)
-                    else:
-                        logger.debug("sending false")
-                        c.send("send_uid_status", False)
-                # TODO: we need result
-            else:
-                logger.warn("Unknown message_type: %s", message_type)
-                logger.warn("with message: %s", message[1])
+            c.send("send_uid_status", False)
 
+# helpers
 def init_rest():
     r = requests.get(api_url + restSuffix)
     if r.status_code != 200:
