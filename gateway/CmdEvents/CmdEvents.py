@@ -24,7 +24,7 @@ class CmdEvents():
 
     def run(self):
         while True:
-            readOnce(self)
+            self.readOnce()
 
     def readOnce(self):
         try:
