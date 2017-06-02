@@ -9,7 +9,8 @@ class CmdEventsTestCase(unittest.TestCase):
     def setUp(self):
         self.commands = [["foo", "s"],
                          ["bar", "?"],
-                         ["baz", ""]]
+                         ["baz", ""],
+                         ["mixed", "s?"]]
 
     @patch("PyCmdMessenger.CmdMessenger")
     def testFind(self, mocked):
@@ -18,38 +19,41 @@ class CmdEventsTestCase(unittest.TestCase):
         self.assertTrue(cmdEvents.isMessageTypeValid("foo"))
         self.assertFalse(cmdEvents.isMessageTypeValid("notfoundatall"))
 
-    def testABCD(self):
+    def testCallbacktypes(self):
         with patch("serial.Serial") as MockClass:
             arduino = PyCmdMessenger.ArduinoBoard("")
             c = PyCmdMessenger.CmdMessenger(arduino, self.commands)
             cmdEvents = CmdEvents.CmdEvents(c)
+            cmdEvents.addListener("foo", self.stringCallback)
+            cmdEvents.addListener("bar", self.booleanCallback)
+            cmdEvents.addListener("baz", self.noneCallback)
+            cmdEvents.addListener("mixed", self.mixedCallback)
 
-            cmdEvents.setDefaultListener(self.stringCallback)
             MockClass.return_value.read.side_effect = list("0,asdf;")
             cmdEvents.readOnce()
 
-            cmdEvents.setDefaultListener(self.booleanCallback)
             MockClass.return_value.read.side_effect = list("1,") + [chr(0x01)] + list(";")
             cmdEvents.readOnce()
 
-            cmdEvents.setDefaultListener(self.noneCallback)
             MockClass.return_value.read.side_effect = list("2;")
             cmdEvents.readOnce()
 
+            MockClass.return_value.read.side_effect = list("3,asdf,") + [chr(0x00)] + list(";")
+            cmdEvents.readOnce()
 
-    def stringCallback(self, mtype, msg):
-        self.assertEquals(mtype, "foo")
-        self.assertEquals(len(msg), 1)
+    def stringCallback(self, msg):
+        self.assertEquals(msg, "asdf")
+
+    def booleanCallback(self, msg):
+        self.assertEquals(msg, True)
+
+    def noneCallback(self, msg):
+        self.assertEquals(msg, None)
+
+    def mixedCallback(self, msg):
+        self.assertEquals(len(msg), 2)
         self.assertEquals(msg[0], "asdf")
-
-    def booleanCallback(self, mtype, msg):
-        self.assertEquals(mtype, "bar")
-        self.assertEquals(len(msg), 1)
-        self.assertEquals(msg[0], True)
-
-    def noneCallback(self, mtype, msg):
-        self.assertEquals(mtype, "baz")
-        self.assertEquals(len(msg), 0)
+        self.assertEquals(msg[1], False)
 
 if __name__ == '__main__':
     unittest.main()
