@@ -1,20 +1,21 @@
 import logging
 import traceback
+import collections
 
 class CmdEvents():
     def __init__(self, cmdMessenger):
         self.cmdMessenger = cmdMessenger
-        self.listeners = {}
+        self.listeners = collections.defaultdict(list)
         self.default_listener_fn = self.default_listener
 
     def setDefaultListener(self, listener):
         self.default_listener_fn = listener
 
     def addListener(self, str, fn):
-        if self.cmdMessenger.commands:
-            self.listeners[str] = fn
+        if self.isMessageTypeValid(str):
+            self.listeners[str].append(fn)
         else:
-            raise Exception, "Command not found: " + str
+            raise Exception, "Messagetype not found: " + str
 
     def isMessageTypeValid(self, str):
         for x in self.cmdMessenger.commands:
@@ -36,8 +37,8 @@ class CmdEvents():
         if message == None:
             pass
         else:
-            listener_fn = self.listeners.get(message[0])
-            if listener_fn == None:
+            listener_fns = self.listeners.get(message[0])
+            if listener_fns == None:
                 self.default_listener_fn(message[0], message[1])
                 return
 
@@ -49,7 +50,8 @@ class CmdEvents():
                 msg = message[1][0]
             else:
                 msg = message[1]
-            listener_fn(msg)
+            for listener_fn in listener_fns:
+                listener_fn(msg)
 
     def default_listener(self, mtype, msg):
         logging.warn("Unknown message_type: %s", mtype)

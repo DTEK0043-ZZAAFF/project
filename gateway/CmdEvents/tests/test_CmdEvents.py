@@ -1,4 +1,5 @@
 from mock import MagicMock
+from mock import Mock
 from mock import patch
 import unittest
 import CmdEvents
@@ -12,34 +13,108 @@ class CmdEventsTestCase(unittest.TestCase):
                          ["baz", ""],
                          ["mixed", "s?"]]
 
-    @patch("PyCmdMessenger.CmdMessenger")
-    def testFind(self, mocked):
-        mocked.commands = self.commands
-        cmdEvents = CmdEvents.CmdEvents(mocked)
+    def testAddingCallbacks(self):
+        mockedArduino = Mock()
+        mockedArduino.connected = True
+        c = PyCmdMessenger.CmdMessenger(mockedArduino, self.commands)
+        cmdEvents = CmdEvents.CmdEvents(c)
+
+        fn1 = Mock()
+        fn2 = Mock()
+        cmdEvents.addListener("foo", fn1)
+        cmdEvents.addListener("foo", fn2)
+
+        mockedArduino.read.side_effect = list("0,asdf;")
+        cmdEvents.readOnce()
+
+        # test if mocked callback functions are called
+        fn1.assert_called_once_with("asdf")
+        fn2.assert_called_once_with("asdf")
+
+    def testAddingBadCallback(self):
+        mockedArduino = Mock()
+        mockedArduino.connected = True
+        c = PyCmdMessenger.CmdMessenger(mockedArduino, self.commands)
+        cmdEvents = CmdEvents.CmdEvents(c)
+
+        fn1 = Mock()
+
+        self.assertRaises(Exception, cmdEvents.addListener, "notfoundatall", fn1)
+
+    def testAddingDefaultCallback(self):
+        mockedArduino = Mock()
+        mockedArduino.connected = True
+        c = PyCmdMessenger.CmdMessenger(mockedArduino, self.commands)
+        cmdEvents = CmdEvents.CmdEvents(c)
+
+        fn1 = Mock()
+        fn2 = Mock()
+        cmdEvents.addListener("foo", fn1)
+        cmdEvents.setDefaultListener(fn2)
+
+        mockedArduino.read.side_effect = list("0,asdf;") + list("1,") + [chr(0x01)] + list(";")
+        cmdEvents.readOnce()
+        cmdEvents.readOnce()
+
+        # test if mocked callback functions are called
+        fn1.assert_called_once_with("asdf")
+        # note totally different set of argements than regular callbacks
+        fn2.assert_called_once_with("bar", [True])
+
+    def testDefaultCallback(self):
+        mockedArduino = Mock()
+        mockedArduino.connected = True
+        c = PyCmdMessenger.CmdMessenger(mockedArduino, self.commands)
+        cmdEvents = CmdEvents.CmdEvents(c)
+
+        fn1 = Mock()
+        fn2 = Mock()
+        cmdEvents.addListener("foo", fn1)
+        # cmdEvents.default_listener = fn2 did not work as exceptd, why?
+        # one functuon call was recorded but no arguments
+        # default builtin callback printed its output
+        cmdEvents.default_listener_fn = fn2
+
+        mockedArduino.read.side_effect = list("0,asdf;") + list("1,") + [chr(0x01)] + list(";")
+        cmdEvents.readOnce()
+        cmdEvents.readOnce()
+
+        # test if mocked callback functions are called
+        fn1.assert_called_once_with("asdf")
+        # note totally different set of argements than regular callbacks
+        fn2.assert_called_once
+        fn2.assert_called_once_with("bar", [True])
+
+    def testFind(self):
+        mockedCmdMessenger = Mock()
+        mockedCmdMessenger.commands = self.commands
+        cmdEvents = CmdEvents.CmdEvents(mockedCmdMessenger)
+
+        # simply test if message types are found
         self.assertTrue(cmdEvents.isMessageTypeValid("foo"))
         self.assertFalse(cmdEvents.isMessageTypeValid("notfoundatall"))
 
-    def testCallbacktypes(self):
-        with patch("serial.Serial") as MockClass:
-            arduino = PyCmdMessenger.ArduinoBoard("")
-            c = PyCmdMessenger.CmdMessenger(arduino, self.commands)
-            cmdEvents = CmdEvents.CmdEvents(c)
-            cmdEvents.addListener("foo", self.stringCallback)
-            cmdEvents.addListener("bar", self.booleanCallback)
-            cmdEvents.addListener("baz", self.noneCallback)
-            cmdEvents.addListener("mixed", self.mixedCallback)
+    @patch("serial.Serial")
+    def testCallbacktypes(self, MockClass):
+        arduino = PyCmdMessenger.ArduinoBoard("")
+        c = PyCmdMessenger.CmdMessenger(arduino, self.commands)
+        cmdEvents = CmdEvents.CmdEvents(c)
+        cmdEvents.addListener("foo", self.stringCallback)
+        cmdEvents.addListener("bar", self.booleanCallback)
+        cmdEvents.addListener("baz", self.noneCallback)
+        cmdEvents.addListener("mixed", self.mixedCallback)
 
-            MockClass.return_value.read.side_effect = list("0,asdf;")
-            cmdEvents.readOnce()
+        MockClass.return_value.read.side_effect = list("0,asdf;")
+        cmdEvents.readOnce()
 
-            MockClass.return_value.read.side_effect = list("1,") + [chr(0x01)] + list(";")
-            cmdEvents.readOnce()
+        MockClass.return_value.read.side_effect = list("1,") + [chr(0x01)] + list(";")
+        cmdEvents.readOnce()
 
-            MockClass.return_value.read.side_effect = list("2;")
-            cmdEvents.readOnce()
+        MockClass.return_value.read.side_effect = list("2;")
+        cmdEvents.readOnce()
 
-            MockClass.return_value.read.side_effect = list("3,asdf,") + [chr(0x00)] + list(";")
-            cmdEvents.readOnce()
+        MockClass.return_value.read.side_effect = list("3,asdf,") + [chr(0x00)] + list(";")
+        cmdEvents.readOnce()
 
     def stringCallback(self, msg):
         self.assertEquals(msg, "asdf")
