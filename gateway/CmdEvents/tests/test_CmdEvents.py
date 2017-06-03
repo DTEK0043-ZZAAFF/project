@@ -61,19 +61,15 @@ class CmdEventsTestCase(unittest.TestCase):
         # note totally different set of argements than regular callbacks
         fn2.assert_called_once_with("bar", [True])
 
-    def testDefaultCallback(self):
+    @patch("CmdEvents.CmdEvents.default_listener")
+    def testDefaultCallback(self, mockedFunction):
         mockedArduino = Mock()
         mockedArduino.connected = True
         c = PyCmdMessenger.CmdMessenger(mockedArduino, self.commands)
         cmdEvents = CmdEvents.CmdEvents(c)
 
         fn1 = Mock()
-        fn2 = Mock()
         cmdEvents.addListener("foo", fn1)
-        # cmdEvents.default_listener = fn2 did not work as exceptd, why?
-        # one functuon call was recorded but no arguments
-        # default builtin callback printed its output
-        cmdEvents.default_listener_fn = fn2
 
         mockedArduino.read.side_effect = list("0,asdf;") + list("1,") + [chr(0x01)] + list(";")
         cmdEvents.readOnce()
@@ -82,8 +78,8 @@ class CmdEventsTestCase(unittest.TestCase):
         # test if mocked callback functions are called
         fn1.assert_called_once_with("asdf")
         # note totally different set of argements than regular callbacks
-        fn2.assert_called_once
-        fn2.assert_called_once_with("bar", [True])
+        mockedFunction.assert_called_once
+        mockedFunction.assert_called_once_with("bar", [True])
 
     def testFind(self):
         mockedCmdMessenger = Mock()
