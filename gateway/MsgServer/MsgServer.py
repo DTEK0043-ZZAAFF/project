@@ -30,8 +30,9 @@ class MsgHandler(asyncore.dispatcher):
 
     def handle_read(self):
         data = self.recv(self.chunk_size)
+        # TODO: add a way to contol gateway.py
+        # e.g. enable sensors without command line args
         self.logger.debug("Read: %s", data)
-        (command, message) = string.split(data, ":", 1)
-        self.fn("send_mock", message)
+        self.fn("send_mock", data)
         self.send("OK")
         self.close()

@@ -7,106 +7,99 @@ import requests
 import string
 import sys
 import threading
-import traceback
+import time
 
 import PyCmdMessenger
 import MsgServer
 import CmdEvents
 
-# simple command line parsing
-parser = argparse.ArgumentParser()
-parser.add_argument("-v", "--verbosity", type=int, default=0, choices=[0, 1, 2],
-                    help="increase output verbosity")
-parser.add_argument("--online", type=str, metavar="PROTO://ADDRESS:PORT",
-                    help="Enable online storage")
-parser.add_argument("--lm75", action="store_true", help="Use LM75 sensor")
-parser.add_argument("--name", default="default_node", metavar="NAME",
-                    help="Name of the node")
-parser.add_argument("com", default="/dev/ttyACM0", metavar="COM_PORT",
-                    help="COM port to use")
-args = parser.parse_args()
-
-# setup variables
-arduino_port = args.com
-if args.online == None:
-    api_url = None
-    online = False
-else:
-    api_url = args.online
-    online = True
-node_name = args.name
-
-restSuffix = "/api/v1"
-unlockSuffix = "/api/v2"
-
-# init arduino and CmdMessenger
-arduino = PyCmdMessenger.ArduinoBoard(arduino_port, baud_rate=9600)
-
 commands = [["send_log", "s"],
             ["send_temp", "d"],
             ["send_pir", ""],   # TODO: bug here, does not allow None
-            ["request_lm75", ""],
+            ["request_lm75", "?"],
             ["send_mock", "s"],
             ["request_uid_status", "s"],
-            ["send_uid_status", "?"]]
+            ["send_uid_status", "?"],
+            ["request_pir", "?"]]
 
-c = PyCmdMessenger.CmdMessenger(arduino, commands)
-logger = logging.getLogger("main")
-nodeLogger = logging.getLogger("Arduino")
+nodeLogger = logging.getLogger("arduino")
+logger = logging.getLogger("gateway")
 
-def main():
-    global c, online
-    logging.basicConfig(level=logging.DEBUG)
+class Main():
+    def __init__(self, arduino_port, online, api_url, node_name, lm75):
+        self.logger = logging.getLogger("gateway.main")
+        self.online = online
+        if online:
+            self.api_urlv1 = api_url + "/api/v1"
+            self.api_url_for_unlock = api_url + "/api/v2"
+        self.node_name = node_name
+        self.lm75 = lm75
+        self.arduino = PyCmdMessenger.ArduinoBoard(arduino_port, baud_rate=9600)
+        self.cmdMessenger = PyCmdMessenger.CmdMessenger(self.arduino, commands)
 
-    lm75 = False
-    if len(sys.argv) > 4:
-        lm75 = True
+    def main(self):
+        # init internal command server
+        init_msg_server(self.cmdMessenger)
 
-    # init internal command server
-    init_msg_server()
+        # init REST connection
+        if self.online:
+            node_url = init_rest(self.api_urlv1, self.node_name)
 
-    # init REST connection
-    if online:
-        node_url = init_rest()
+            if node_url != None:
+                self.logger.info("Node URL: %s", node_url)
+                online = True
+            else:
+                self.logger.error("Failed to initialize REST")
+                sys.exit(1)
 
-        if node_url != None:
-            logger.info("Node URL: %s", node_url)
-            online = True
-        else:
-            logger.warn("Failed to initialize REST")
-            online = False
+        # turn on lm75 temperature logging when requested
+        if self.lm75:
+            self.cmdMessenger.send("request_lm75", True)
 
-    # turn on lm75 temperature logging when requested
-    if lm75:
-        c.send("request_lm75")
+        # prepate event handler | simple REST
+        event_handler = CmdEvents.CmdEvents(self.cmdMessenger)
+        event_handler.addListener("send_log", on_send_log)
+        if self.online:
+            event_handler.addListener("send_temp",
+                                      on_send_temp(self.api_urlv1, node_url))
+            event_handler.addListener("send_pir",
+                                      on_send_pir(self.api_urlv1, node_url))
+            event_handler.addListener("request_uid_status",
+                                      on_request_uid_status(self.api_url_for_unlock, node_url))
 
-    # prepate event handler
-    event_handler = CmdEvents.CmdEvents(c)
-    event_handler.addListener("send_log", on_send_log)
-    event_handler.addListener("send_temp", on_send_temp)
-    event_handler.addListener("send_pir", on_send_pir)
-    event_handler.addListener("request_uid_status", on_request_uid_status)
-    # start event handler (blocks)
-    event_handler.run()
+        if logger.isEnabledFor(logging.DEBUG):
+            event_handler.addDebugListener(on_debug)
 
-# callback
+        # start event handler thread
+        event_handler.start()
+
+        #meh
+        while True:
+            time.sleep(10)
+
+# debug print callbacks
+def on_debug(msg):
+    nodeLogger.debug(msg)
+
+# REST callbacks
 def on_send_log(msg):
     nodeLogger.debug(msg)
 
-def on_send_temp(msg):
-    logger.debug("temp: %s", msg)
-    online and requests.post(api_url + restSuffix + "/temperatures",
-                             json={"node": node_url, "value": msg})
+def on_send_temp(api_url, node_url):
+    def call(msg):
+        requests.post(api_url + "/temperatures",
+                      json={"node": node_url, "value": msg})
+    return call
 
-def on_send_pir(msg):
-    logger.debug("PIR detection!")
-    online and requests.post(api_url + restSuffix + "/pirs",
-                             json={"node": node_url})
+def on_send_pir(api_url, node_url):
+    def call(msg):
+        requests.post(api_url + "/pirs",
+                      json={"node": node_url})
+    return call
 
-def on_request_uid_status(msg):
-    logger.debug("uid status request: %s", msg)
-    if online:
-        r = requests.get(api_url + unlockSuffix + "/checkpermission/"
+def on_request_uid_status(api_url, node_url):
+    def call(msg):
+        r = requests.get(api_url + "/checkpermission/"
                      + string.split(node_url, "/")[-1] + "/" + msg)
         if r.status_code is 200:
             c.send("send_uid_status", True)
@@ -114,17 +107,17 @@ def on_request_uid_status(msg):
             c.send("send_uid_status", False)
 
 # helpers
-def init_rest():
-    r = requests.get(api_url + restSuffix)
+def init_rest(api_url, node_name):
+    r = requests.get(api_url)
     if r.status_code != 200:
         logger.error("check API URL")
         return None
 
-    address = api_url + restSuffix + "/nodes/search/findByName?name=" + node_name
+    address = api_url + "/nodes/search/findByName?name=" + node_name
     r = requests.get(address)
     if r.status_code == 404:
         logger.warn("Node not found, creating!")
-        r = requests.post(api_url + restSuffix + "/nodes", json={"name": "node_name"})
+        r = requests.post(api_url + "/nodes", json={"name": "node_name"})
         if r.status_code == 201:
             json_data = json.loads(r.text)
             return json_data["_links"]["self"]["href"]
@@ -136,17 +129,40 @@ def init_rest():
         json_data = json.loads(r.text)
         return json_data["_links"]["self"]["href"]
 
-def init_msg_server():
+def init_msg_server(cmdMessenger):
     logging.debug('Serving on localhost:5050')
-    server = MsgServer.MsgServer('localhost', 5050, c.send)
+    server = MsgServer.MsgServer('localhost', 5050, cmdMessenger.send)
     loop_thread = threading.Thread(target=asyncore.loop, name="Asyncore Loop")
     loop_thread.daemon = True
     loop_thread.start()
 
-
-
 if __name__ == "__main__":
+    # simple command line parsing
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-v", "--verbosity", type=str, default="INFO", choices=["info", "debug"],
+                        help="increase output verbosity")
+    parser.add_argument("--online", type=str, metavar="PROTO://ADDRESS:PORT",
+                        help="Enable online storage")
+    parser.add_argument("--lm75", action="store_true", help="Use LM75 sensor")
+    parser.add_argument("--name", default="default_node", metavar="NAME",
+                        help="Name of the node")
+    parser.add_argument("com", default="/dev/ttyACM0", metavar="COM_PORT",
+                        help="COM port to use")
+    args = parser.parse_args()
+
+    conf_api_url = None
+    conf_online = False
+    if args.online != None:
+        conf_api_url = args.online
+        conf_online = True
+    conf_node_name = args.name
+
+    numeric_level = getattr(logging, args.verbosity.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError('Invalid log level: {}'.format(args.verbosity))
+    logging.basicConfig(level=numeric_level)
+
     try:
-        main()
+        Main(args.com, conf_online, conf_api_url, conf_node_name, args.lm75).main()
     except KeyboardInterrupt:
         sys.exit()

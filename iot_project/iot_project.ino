@@ -8,13 +8,14 @@ enum {send_log,
   request_lm75,
   send_mock,
   request_uid_status,
-  send_uid_status,};
+  send_uid_status,
+  request_pir,};
 
 static const int ledPin = 13;
 static const int pirPin = 2;
 static const int thermPin = A0;
 static boolean enable_lm75 = false;
-static boolean enable_pir = true;
+static boolean enable_pir = false;
 static int prev_pir_state = LOW;
 static boolean unlockRequestPending = false;
 static unsigned long unlockRequestTime;
@@ -80,7 +81,7 @@ void loop() {
     int val = digitalRead(pirPin);
     if (prev_pir_state == LOW && val == HIGH) {
       // rising edge
-      //c.sendCmd(send_pir);
+      c.sendCmd(send_pir);
       prev_pir_state = val;
     } else if (prev_pir_state == HIGH && val == LOW) {
       // falling edge
@@ -113,6 +114,7 @@ float temperature(float res) {
 //callbacks
 void attach_callbacks() {
   c.attach(request_lm75, on_request_lm75);
+  c.attach(request_pir, on_request_pir);
   c.attach(send_mock, on_send_mock);
   c.attach(send_uid_status, on_send_uid_status);
   c.attach(on_unknown_request);
@@ -123,7 +125,11 @@ void on_unknown_request() {
 }
 
 void on_request_lm75() {
-  enable_lm75 = true;
+  enable_lm75 = c.readBinArg<bool>();
+}
+
+void on_request_pir() {
+  enable_pir = c.readBinArg<bool>();
 }
 
 /*
@@ -134,19 +140,34 @@ void on_request_lm75() {
 void on_send_mock() {
   // note UIDs usually have fixed length
   char* uid = c.readStringArg();
+  char* cmd = strtok(uid, ":");
+  char* msg = strtok(NULL, "");
 
-  // our mock gave uid. Send request to server to determine if
-  // uid is active for this device. Server compares node name and
-  // uid. As soon as gateway knows the result it send send_uid_status
-  // message
+  if (strcasecmp(cmd, "mock") == 0) {
+    if (!unlockRequestPending) {
+      //c.sendBinCmd(request_uid_status, uid);
+      c.sendCmd(request_uid_status, msg);
+      unlockRequestPending = true;
+      unlockRequestTime = millis();
+    } else {
+      logger("WARNING: RFID read ignored, already pending");
+    }
+    return;
+  }
 
-  if (!unlockRequestPending) {
-    //c.sendBinCmd(request_uid_status, uid);
-    c.sendCmd(request_uid_status, uid);
-    unlockRequestPending = true;
-    unlockRequestTime = millis();
-  } else {
-    logger("WARNING: RFID read ignored, already pending");
+  if (strcasecmp(cmd, "piru") == 0) {
+    if (prev_pir_state == LOW) {
+      c.sendCmd(send_pir);
+      prev_pir_state = HIGH;
+    }
+    return;
+  }
+
+  if (strcasecmp(cmd, "pird") == 0) {
+    if (prev_pir_state == HIGH) {
+      prev_pir_state = LOW;
+    }
+    return;
   }
 }
 
