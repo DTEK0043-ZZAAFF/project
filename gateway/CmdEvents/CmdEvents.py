@@ -46,13 +46,19 @@ class CmdEvents(threading.Thread):
         else:
             # first pass message to debug
             for listener in self.debug_listeners:
-                listener(message)
+                try:
+                    listener(message)
+                except Exception:
+                    self.logger.warn("debug callback function failed: ")
 
             # find the listeners
             listener_fns = self.listeners.get(message[0])
             # if none found => default
             if listener_fns is None:
-                self.default_listener_fn(message[0], message[1])
+                try:
+                    self.default_listener_fn(message[0], message[1])
+                except Exception:
+                    self.logger.warn("default callback function failed: ")
                 return
 
             # pass one argument to handler
@@ -65,7 +71,10 @@ class CmdEvents(threading.Thread):
                 msg = message[1]
             # finally pass message to callback functions
             for listener_fn in listener_fns:
-                listener_fn(msg)
+                try:
+                    listener_fn(msg)
+                except Exception:
+                    self.logger.warn("callback function failed: ")
 
     def default_listener(self, mtype, msg):
         self.logger.warn("Unknown message_type: %s", mtype)
