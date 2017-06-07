@@ -100,6 +100,7 @@ void loop() {
     // timeout open lock
     digitalWrite(ledPin, LOW);
     lockOpen = false;
+    logger("INFO: door locked");
   }
 }
 
@@ -151,6 +152,7 @@ void on_send_mock() {
       c.sendCmd(request_uid_status, msg);
       unlockRequestPending = true;
       unlockRequestTime = millis();
+      logger("INFO: trying unlock from mock");
     } else {
       logger("WARNING: RFID read ignored, already pending");
     }
@@ -179,6 +181,7 @@ void on_send_uid_status() {
   if (unlock) {
     lockOpen = true;
     lockOpenTime = millis();
+    logger("INFO: door open");
     digitalWrite(ledPin, HIGH);
   } else {
     logger("WARNING: unlisted uid!");
@@ -190,5 +193,6 @@ void on_force_unlock() {
   unlockRequestPending = false;
   lockOpen = true;
   lockOpenTime = millis();
+  logger("INFO: door open");
   digitalWrite(ledPin, HIGH);
 }
