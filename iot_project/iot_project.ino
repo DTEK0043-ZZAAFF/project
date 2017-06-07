@@ -9,7 +9,8 @@ enum {send_log,
   send_mock,
   request_uid_status,
   send_uid_status,
-  request_pir,};
+  request_pir,
+  force_unlock,};
 
 static const int ledPin = 13;
 static const int pirPin = 2;
@@ -117,6 +118,7 @@ void attach_callbacks() {
   c.attach(request_pir, on_request_pir);
   c.attach(send_mock, on_send_mock);
   c.attach(send_uid_status, on_send_uid_status);
+  c.attach(force_unlock, on_force_unlock);
   c.attach(on_unknown_request);
 }
 
@@ -182,4 +184,11 @@ void on_send_uid_status() {
     logger("WARNING: unlisted uid!");
     lockOpen = false; // just lock it
   }
+}
+
+void on_force_unlock() {
+  unlockRequestPending = false;
+  lockOpen = true;
+  lockOpenTime = millis();
+  digitalWrite(ledPin, HIGH);
 }
