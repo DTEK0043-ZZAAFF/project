@@ -37,7 +37,7 @@ class CmdEvents(threading.Thread):
     def read_once(self):
         try:
             message = self.cmd_messenger.receive()
-        except (IOError, ValueError):
+        except Exception: #pylint: disable=broad-except
             message = None
             self.logger.warn("Reading message failed: ", exc_info=True)
 
@@ -48,7 +48,7 @@ class CmdEvents(threading.Thread):
             for listener in self.debug_listeners:
                 try:
                     listener(message)
-                except Exception:
+                except Exception: #pylint: disable=broad-except
                     self.logger.warn("debug callback function failed: ")
 
             # find the listeners
@@ -57,7 +57,7 @@ class CmdEvents(threading.Thread):
             if listener_fns is None:
                 try:
                     self.default_listener_fn(message[0], message[1])
-                except Exception:
+                except Exception: #pylint: disable=broad-except
                     self.logger.warn("default callback function failed: ")
                 return
 
@@ -73,7 +73,7 @@ class CmdEvents(threading.Thread):
             for listener_fn in listener_fns:
                 try:
                     listener_fn(msg)
-                except Exception:
+                except Exception: #pylint: disable=broad-except
                     self.logger.warn("callback function failed: ")
 
     def default_listener(self, mtype, msg):

@@ -9,3 +9,4 @@ __all__ = ["MsgServer"]
 
 from .MsgServer import MsgServer as MsgServer
 from .MsgServer import MsgHandler as MsgHandler
+from .MsgServer import init_msg_server as init_msg_server

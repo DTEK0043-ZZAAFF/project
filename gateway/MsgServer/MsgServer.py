@@ -1,6 +1,7 @@
 import asyncore
 import logging
 import socket
+import threading
 
 class MsgServer(asyncore.dispatcher):
     def __init__(self, host, port, func):
@@ -35,3 +36,9 @@ class MsgHandler(asyncore.dispatcher):
         self.func("send_mock", data)
         self.send("OK")
         self.close()
+
+def init_msg_server(cmd_messenger):
+    server = MsgServer('localhost', 50505, cmd_messenger.send) # pylint: disable=unused-variable
+    loop_thread = threading.Thread(target=asyncore.loop, name="Asyncore Loop")
+    loop_thread.daemon = True
+    loop_thread.start()
