@@ -1,3 +1,8 @@
+""" IoT gateway
+
+Read other docstrings and documentation for more information.
+"""
+
 from __future__ import print_function
 import argparse
 import logging
@@ -13,7 +18,7 @@ import MyMqtt
 
 COMMANDS = [["send_log", "s"],
             ["send_temp", "d"],
-            ["send_pir", ""],   # TODO: bug here, does not allow None
+            ["send_pir", ""],   # FIX: bug here, does not allow None
             ["request_lm75", "?"],
             ["send_mock", "s"],
             ["request_uid_status", "s"],
@@ -23,12 +28,26 @@ COMMANDS = [["send_log", "s"],
 
 # debug print callbacks
 def on_debug(msg):
+    """ Callback function for CmdMessenger event handler.
+
+    This function is registered to print all data received from Arduino
+
+    Args:
+        msg (list): message to log
+    """
     logging.getLogger("arduino").debug(msg)
 
 def on_send_log(msg):
+    """ Callback function for CmdMessenger event handler.
+
+    Args:
+        msg (str): message to log
+    """
     logging.getLogger("arduino").info(msg)
 
 def main():
+    """ Main function. Initializes all components and starts background threads.
+    """
     logger = logging.getLogger("main")
     # parse command line arguments
     parser = argparse.ArgumentParser()
