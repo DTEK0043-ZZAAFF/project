@@ -50,7 +50,7 @@ class Myrest(object):
                           json={"node": self.node_url})
 
         def on_request_uid_status(msg):
-            node_id = string.split(self.node_url, "/")[-1]
+            node_id = self.node_url.split("/")[-1]
             req = requests.get(self.api_url_for_unlock + "/checkpermission/"
                                + node_id + "/" + msg)
             if req.status_code == 200:
