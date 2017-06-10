@@ -1,40 +1,78 @@
+"""Event handler for PyCmdMessenger."""
 import logging
 import collections
 import threading
 
 class CmdEvents(threading.Thread):
+    """Event hander class for PyCmdMessenger.
+
+    Simple event handled for PyCmdMessenger.
+
+    Create instance, add callbacks if needed and start background thread with
+    `start()`.
+    """
+
     def __init__(self, cmd_messenger):
+        """Create new instance.
+
+        Args:
+            cmd_messenger: PyCmdMessenger instance to poll and send messages into
+        """
         threading.Thread.__init__(self)
         self.daemon = True
         self.logger = logging.getLogger("CmdEvents")
         self.cmd_messenger = cmd_messenger
-        self.listeners = collections.defaultdict(list)
-        self.debug_listeners = []
-        self.default_listener_fn = self.default_listener
+        self.callbacks = collections.defaultdict(list)
+        self.debug_callbacks = []
+        self.default_callback_fn = self.__default_callback
 
-    def set_default_callback(self, listener):
-        self.default_listener_fn = listener
+    def set_default_callback(self, callback):
+        """Set default callback.
+
+        Args:
+            callback: callback function to call if no matching functions are found
+        """
+        self.default_callback_fn = callback
 
     def add_callback(self, message_type, func):
-        if self.message_type_valid(message_type):
-            self.listeners[message_type].append(func)
+        """Add callback function for defined type.
+
+        Function will receive one argument. Argument type is None, single message or list
+
+        Args:
+            message_type: type of the message for `func`
+            func: function to add
+        """
+        if self.__message_type_valid(message_type):
+            self.callbacks[message_type].append(func)
         else:
             raise Exception, "Messagetype not found: " + message_type
 
     def add_debug_callback(self, func):
-        self.debug_listeners.append(func)
+        """Add debug callback.
 
-    def message_type_valid(self, message_type):
+        Adds debug callback function. Function will be called with full received message
+
+        Args:
+            func: function to add
+        """
+        self.debug_callbacks.append(func)
+
+    def __message_type_valid(self, message_type):
         for command in self.cmd_messenger.commands:
             if command[0] == message_type:
                 return True
         return False
 
     def run(self):
+        """Implement inherited method."""
         while True:
-            self.read_once()
+            self.__read_once()
 
-    def read_once(self):
+    def __read_once(self):
+        """Execute `CmdMessenger.receive()` once."""
+        # read message Arduino node. PyCmdMessenger gives up after 1 second timeout
+        # and return None
         try:
             message = self.cmd_messenger.receive()
         except Exception: #pylint: disable=broad-except
@@ -45,24 +83,25 @@ class CmdEvents(threading.Thread):
             pass
         else:
             # first pass message to debug
-            for listener in self.debug_listeners:
+            for callback in self.debug_callbacks:
                 try:
-                    listener(message)
+                    callback(message)
                 except Exception: #pylint: disable=broad-except
                     self.logger.warn("debug callback function failed: ")
 
-            # find the listeners
-            listener_fns = self.listeners.get(message[0])
-            # if none found => default
-            if listener_fns is None:
+            # find the callbacks
+            callback_fns = self.callbacks.get(message[0])
+            # if call back for type is not found process message with default
+            # callbacks
+            if callback_fns is None:
                 try:
-                    self.default_listener_fn(message[0], message[1])
+                    self.default_callback_fn(message[0], message[1])
                 except Exception: #pylint: disable=broad-except
                     self.logger.warn("default callback function failed: ")
                 return
 
-            # pass one argument to handler
-            # implementor knows what type argument will be
+            # Mangle message for callback method
+            # Implementor of callback method knows message type
             if not message[1]:
                 msg = None
             elif len(message[1]) == 1:
@@ -70,12 +109,12 @@ class CmdEvents(threading.Thread):
             else:
                 msg = message[1]
             # finally pass message to callback functions
-            for listener_fn in listener_fns:
+            for callback_fn in callback_fns:
                 try:
-                    listener_fn(msg)
+                    callback_fn(msg)
                 except Exception: #pylint: disable=broad-except
                     self.logger.warn("callback function failed: ")
 
-    def default_listener(self, mtype, msg):
+    def __default_callback(self, mtype, msg):
         self.logger.warn("Unknown message_type: %s", mtype)
         self.logger.warn("with message: %s", msg)

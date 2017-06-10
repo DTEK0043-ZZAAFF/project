@@ -1,9 +1,10 @@
 import unittest
 
-import myapp.CmdEvents as CmdEvents
 import PyCmdMessenger
 from mock import Mock
 from mock import patch
+
+from myapp import CmdEvents
 
 class CmdEventsTestCase(unittest.TestCase):
     def setUp(self):
@@ -24,7 +25,7 @@ class CmdEventsTestCase(unittest.TestCase):
         cmd_events.add_callback("foo", fn2)
 
         mocked_arduino.read.side_effect = list("0,asdf;")
-        cmd_events.read_once()
+        cmd_events._CmdEvents__read_once()
 
         # test if mocked callback functions are called
         fn1.assert_called_once_with("asdf")
@@ -52,15 +53,15 @@ class CmdEventsTestCase(unittest.TestCase):
         cmd_events.set_default_callback(fn2)
 
         mocked_arduino.read.side_effect = list("0,asdf;") + list("1,") + [chr(0x01)] + list(";")
-        cmd_events.read_once()
-        cmd_events.read_once()
+        cmd_events._CmdEvents__read_once()
+        cmd_events._CmdEvents__read_once()
 
         # test if mocked callback functions are called
         fn1.assert_called_once_with("asdf")
         # note totally different set of argements than regular callbacks
         fn2.assert_called_once_with("bar", [True])
 
-    @patch("myapp.CmdEvents.default_listener")
+    @patch("myapp.CmdEvents._CmdEvents__default_callback")
     def test_default_callback(self, mocked_function):
         mocked_arduino = Mock()
         mocked_arduino.connected = True
@@ -71,8 +72,8 @@ class CmdEventsTestCase(unittest.TestCase):
         cmd_events.add_callback("foo", fn1)
 
         mocked_arduino.read.side_effect = list("0,asdf;") + list("1,") + [chr(0x01)] + list(";")
-        cmd_events.read_once()
-        cmd_events.read_once()
+        cmd_events._CmdEvents__read_once()
+        cmd_events._CmdEvents__read_once()
 
         # test if mocked callback functions are called
         fn1.assert_called_once_with("asdf")
@@ -86,8 +87,8 @@ class CmdEventsTestCase(unittest.TestCase):
         cmd_events = CmdEvents(mocked_cmd_messenger)
 
         # simply test if message types are found
-        self.assertTrue(cmd_events.message_type_valid("foo"))
-        self.assertFalse(cmd_events.message_type_valid("notfoundatall"))
+        self.assertTrue(cmd_events._CmdEvents__message_type_valid("foo"))
+        self.assertFalse(cmd_events._CmdEvents__message_type_valid("notfoundatall"))
 
     @patch("serial.Serial")
     def test_callbacktypes(self, mocked_class):
@@ -100,16 +101,16 @@ class CmdEventsTestCase(unittest.TestCase):
         cmd_events.add_callback("mixed", self.mixed_callback)
 
         mocked_class.return_value.read.side_effect = list("0,asdf;")
-        cmd_events.read_once()
+        cmd_events._CmdEvents__read_once()
 
         mocked_class.return_value.read.side_effect = list("1,") + [chr(0x01)] + list(";")
-        cmd_events.read_once()
+        cmd_events._CmdEvents__read_once()
 
         mocked_class.return_value.read.side_effect = list("2;")
-        cmd_events.read_once()
+        cmd_events._CmdEvents__read_once()
 
         mocked_class.return_value.read.side_effect = list("3,asdf,") + [chr(0x00)] + list(";")
-        cmd_events.read_once()
+        cmd_events._CmdEvents__read_once()
 
     def string_callback(self, msg):
         self.assertEquals(msg, "asdf")
