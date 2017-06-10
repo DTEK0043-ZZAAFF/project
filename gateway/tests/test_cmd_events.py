@@ -1,6 +1,6 @@
 import unittest
 
-import CmdEvents
+import myapp.CmdEvents as CmdEvents
 import PyCmdMessenger
 from mock import Mock
 from mock import patch
@@ -16,7 +16,7 @@ class CmdEventsTestCase(unittest.TestCase):
         mocked_arduino = Mock()
         mocked_arduino.connected = True
         cmd_messenger = PyCmdMessenger.CmdMessenger(mocked_arduino, self.commands)
-        cmd_events = CmdEvents.CmdEvents(cmd_messenger)
+        cmd_events = CmdEvents(cmd_messenger)
 
         fn1 = Mock()
         fn2 = Mock()
@@ -34,7 +34,7 @@ class CmdEventsTestCase(unittest.TestCase):
         mocked_arduino = Mock()
         mocked_arduino.connected = True
         cmd_messenger = PyCmdMessenger.CmdMessenger(mocked_arduino, self.commands)
-        cmd_events = CmdEvents.CmdEvents(cmd_messenger)
+        cmd_events = CmdEvents(cmd_messenger)
 
         fn1 = Mock()
 
@@ -44,7 +44,7 @@ class CmdEventsTestCase(unittest.TestCase):
         mocked_arduino = Mock()
         mocked_arduino.connected = True
         cmd_messenger = PyCmdMessenger.CmdMessenger(mocked_arduino, self.commands)
-        cmd_events = CmdEvents.CmdEvents(cmd_messenger)
+        cmd_events = CmdEvents(cmd_messenger)
 
         fn1 = Mock()
         fn2 = Mock()
@@ -60,12 +60,12 @@ class CmdEventsTestCase(unittest.TestCase):
         # note totally different set of argements than regular callbacks
         fn2.assert_called_once_with("bar", [True])
 
-    @patch("CmdEvents.CmdEvents.default_listener")
+    @patch("myapp.CmdEvents.default_listener")
     def test_default_callback(self, mocked_function):
         mocked_arduino = Mock()
         mocked_arduino.connected = True
         cmd_messenger = PyCmdMessenger.CmdMessenger(mocked_arduino, self.commands)
-        cmd_events = CmdEvents.CmdEvents(cmd_messenger)
+        cmd_events = CmdEvents(cmd_messenger)
 
         fn1 = Mock()
         cmd_events.add_callback("foo", fn1)
@@ -83,7 +83,7 @@ class CmdEventsTestCase(unittest.TestCase):
     def test_find(self):
         mocked_cmd_messenger = Mock()
         mocked_cmd_messenger.commands = self.commands
-        cmd_events = CmdEvents.CmdEvents(mocked_cmd_messenger)
+        cmd_events = CmdEvents(mocked_cmd_messenger)
 
         # simply test if message types are found
         self.assertTrue(cmd_events.message_type_valid("foo"))
@@ -93,7 +93,7 @@ class CmdEventsTestCase(unittest.TestCase):
     def test_callbacktypes(self, mocked_class):
         arduino = PyCmdMessenger.ArduinoBoard("")
         cmd_messenger = PyCmdMessenger.CmdMessenger(arduino, self.commands)
-        cmd_events = CmdEvents.CmdEvents(cmd_messenger)
+        cmd_events = CmdEvents(cmd_messenger)
         cmd_events.add_callback("foo", self.string_callback)
         cmd_events.add_callback("bar", self.boolean_callback)
         cmd_events.add_callback("baz", self.none_callback)

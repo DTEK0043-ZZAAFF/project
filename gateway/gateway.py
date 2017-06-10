@@ -1,5 +1,5 @@
 #!/usr/bin/python2
-""" IoT gateway for DTEL0043
+"""IoT gateway for DTEL0043.
 
 The main file: contain main function which binds all other classes to make
 magic happen.
@@ -16,21 +16,21 @@ import time
 
 import PyCmdMessenger
 
-import MsgServer
-import CmdEvents
-import MyRest
-import MyMqtt
+from myapp import CmdEvents
+from myapp import MsgServer
+from myapp import MyRest
+from myapp import MyMqtt
 
 COMMANDS = [["send_log", "s"],
             ["send_temp", "d"],
-            ["send_pir", ""],   # FIX: bug here, does not allow None
+            ["send_pir", ""],   # TODO: bug here, does not allow None
             ["request_lm75", "?"],
             ["send_mock", "s"],
             ["request_uid_status", "s"],
             ["send_uid_status", "?"],
             ["request_pir", "?"],
             ["force_unlock", ""]]
-""" Methods for CmdMessenger
+"""Methods for CmdMessenger
 
 PyCmdMessenger uses this to check that incoming data values have correct types
 and outgoing messages have valid tag and data type.
@@ -39,26 +39,27 @@ and outgoing messages have valid tag and data type.
 
 
 def __on_debug(msg):
-    """ Callback function for CmdMessenger event handler.
+    """Log messages from arduino with debug priority/format.
 
-    This function is registered to print all data received from Arduino
+    This function is used as callback function with PyCmdMessenger event handlers.
 
     Args:
-        msg (list): message to log
+        msg: message to log
     """
     logging.getLogger("arduino").debug(msg)
 
 def __on_send_log(msg):
-    """ Callback function for CmdMessenger event handler.
+    """Log logging messages send from Arduino.
+
+    This function is used as callback function with PyCmdMessenger event handlers.
 
     Args:
-        msg (str): message to log
+        msg: message to log
     """
     logging.getLogger("arduino").info(msg)
 
 def main():
-    """ Main function. Initializes all components and starts background threads.
-    """
+    """Run the app. Initializes all components and starts background threads."""
     logger = logging.getLogger("main")
     # parse command line arguments
     parser = argparse.ArgumentParser()
@@ -94,7 +95,7 @@ def main():
     # Register basic event handlers: logging messges from arduino node
     # and if doing debug logging log all messages received from arduino
     logger.info("Initializing CmdMessenger event handler")
-    event_handler = CmdEvents.CmdEvents(cmd_messenger)
+    event_handler = CmdEvents(cmd_messenger)
     event_handler.add_callback("send_log", __on_send_log)
     if logger.isEnabledFor(logging.DEBUG):
         event_handler.add_debug_callback(__on_debug)
@@ -103,7 +104,7 @@ def main():
     # Note: if `MyRest.Myrest` exits process if connection fails
     logger.info("Initializing java based REST interface")
     if args.myrest != None:
-        myrest = MyRest.Myrest(args.myrest, args.name)
+        myrest = MyRest(args.myrest, args.name)
         myrest.register_callbacks(cmd_messenger, event_handler)
 
     # Initialize MQTT: Subscribe one MQTT message channel.

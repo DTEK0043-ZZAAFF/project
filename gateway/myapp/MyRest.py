@@ -1,12 +1,11 @@
 """ Encapsulates REST initialization and REST related callbacks """
 import json
 import logging
-import string
 import sys
 
 import requests
 
-class Myrest(object):
+class MyRest(object):
     def __init__(self, api_url, node_name):
         # self.api_url = api_url
         self.api_urlv1 = api_url + "/api/v1"
