@@ -1,3 +1,4 @@
+""" Encapsulates REST initialization and REST related callbacks """
 import json
 import logging
 import string

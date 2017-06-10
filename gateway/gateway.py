@@ -1,6 +1,11 @@
-""" IoT gateway
+#!/usr/bin/python2
+""" IoT gateway for DTEL0043
 
-Read other docstrings and documentation for more information.
+The main file: contain main function which binds all other classes to make
+magic happen.
+
+See other modules for more information about source code.
+For other info consult READMEs, NOTES and project documentation.
 """
 
 from __future__ import print_function
@@ -25,9 +30,15 @@ COMMANDS = [["send_log", "s"],
             ["send_uid_status", "?"],
             ["request_pir", "?"],
             ["force_unlock", ""]]
+""" Methods for CmdMessenger
 
-# debug print callbacks
-def on_debug(msg):
+PyCmdMessenger uses this to check that incoming data values have correct types
+and outgoing messages have valid tag and data type.
+
+"""
+
+
+def __on_debug(msg):
     """ Callback function for CmdMessenger event handler.
 
     This function is registered to print all data received from Arduino
@@ -37,7 +48,7 @@ def on_debug(msg):
     """
     logging.getLogger("arduino").debug(msg)
 
-def on_send_log(msg):
+def __on_send_log(msg):
     """ Callback function for CmdMessenger event handler.
 
     Args:
@@ -70,31 +81,42 @@ def main():
         raise ValueError('Invalid log level: {}'.format(args.verbosity))
     logging.basicConfig(level=numeric_level)
 
+    # Setup hardware. PyCmdMessenger is used as abstraction layer
     logger.info("Setting up hardware")
     arduino = PyCmdMessenger.ArduinoBoard(args.com, baud_rate=9600)
     cmd_messenger = PyCmdMessenger.CmdMessenger(arduino, COMMANDS)
 
+    # Setup extra server for incoming commands. Used to receive command
+    # through TCP socket.
     logger.info("Initializing internal command handler")
     MsgServer.init_msg_server(cmd_messenger)
 
+    # Register basic event handlers: logging messges from arduino node
+    # and if doing debug logging log all messages received from arduino
     logger.info("Initializing CmdMessenger event handler")
     event_handler = CmdEvents.CmdEvents(cmd_messenger)
-    event_handler.add_callback("send_log", on_send_log)
+    event_handler.add_callback("send_log", __on_send_log)
     if logger.isEnabledFor(logging.DEBUG):
-        event_handler.add_debug_callback(on_debug)
+        event_handler.add_debug_callback(__on_debug)
 
+    # Initialize simple REST interface. Endpoint is out Java backend.
+    # Note: if `MyRest.Myrest` exits process if connection fails
     logger.info("Initializing java based REST interface")
     if args.myrest != None:
         myrest = MyRest.Myrest(args.myrest, args.name)
         myrest.register_callbacks(cmd_messenger, event_handler)
 
+    # Initialize MQTT: Subscribe one MQTT message channel.
     logger.info("Initializing MQTT")
     if args.mymqtt != None:
         MyMqtt.init_mqtt(cmd_messenger, args.mymqtt, args.name)
 
+    # Start event handler loop. Messages from Serial port are now
+    # being polled
     logger.info("Starting CmdMessenger event handler message loop")
     event_handler.start()
 
+    # Send commands to node to enable configured sensors
     logger.info("enabling sensors")
     if args.lm75:
         cmd_messenger.send("request_lm75", True)
@@ -102,9 +124,10 @@ def main():
     logger.info("All done. Processing Arduino and MQTT messages")
 
 if __name__ == "__main__":
+    main()
     try:
-        main()
+        # main thread must be kep alive otherwise nothing captures CTRL+C
         while True:
             time.sleep(10)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, IOError):
         sys.exit()
