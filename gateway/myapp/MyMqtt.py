@@ -4,6 +4,11 @@ __author__ = "Janne Kujanpää"
 __copyright__ = "Copyright (c) 2017 Janne Kujanpää"
 __license__ = "MIT"
 
+#
+# Eclipse paho client is dual licensed under the Eclipse Public License 1.0 and the
+# Eclipse Distribution License 1.0
+#
+
 import logging
 from urlparse import urlparse
 

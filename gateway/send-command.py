@@ -4,6 +4,10 @@ import logging
 import socket
 import sys
 
+__author__ = "Janne Kujanpää"
+__copyright__ = "Copyright (c) 2017 Janne Kujanpää"
+__license__ = "CC0 1.0 Universal, https://creativecommons.org/publicdomain/zero/1.0/legalcode"
+
 def main():
     if len(sys.argv) != 4:
         print("Usage: mock.py <host> <port> <message>")
