@@ -1,4 +1,4 @@
-""" Encapsulates REST initialization and REST related callbacks """
+"""Encapsulates REST initialization and REST related callbacks."""
 import json
 import logging
 import sys
@@ -6,7 +6,17 @@ import sys
 import requests
 
 class MyRest(object):
+    """Encapsulates REST initialization and REST related callbacks."""
+
     def __init__(self, api_url, node_name):
+        """Create new instance
+
+        This class stores all data required to initialize REST interface
+
+        Args:
+            api_url: REST endpoint URL
+            node_name: human readable short node name
+        """
         # self.api_url = api_url
         self.api_urlv1 = api_url + "/api/v1"
         self.api_url_for_unlock = api_url + "/api/v2"
@@ -18,10 +28,14 @@ class MyRest(object):
             sys.exit("REST was requested but not found")
 
     def init_rest(self):
+        """Initialize REST interface.
+
+        Return: Node's URL if successful. Exits process if failed.
+        """
         req = requests.get(self.api_urlv1)
         if req.status_code != 200:
             self.logger.error("check API URL")
-            return None
+            sys.exit("exit")
 
         address = self.api_urlv1 + "/nodes/search/findByName?name=" + self.node_name
         req = requests.get(address)
@@ -32,7 +46,7 @@ class MyRest(object):
                 json_data = json.loads(req.text)
                 return json_data["_links"]["self"]["href"]
             else:
-                self.logger.debug("status code: %s body: %s", req.status_code, req.text)
+                self.logger.error("status code: %s body: %s", req.status_code, req.text)
                 sys.exit("failed")
         else:
             self.logger.debug("REST OK")
@@ -40,15 +54,24 @@ class MyRest(object):
             return json_data["_links"]["self"]["href"]
 
     def register_callbacks(self, cmd_messenger, event_handler):
+        """Register REST related callbacks
+
+        Args:
+            cmd_messenger: PyCmdMessenger instance to communacate with
+            event_handler: CmdEvents instance to add callbacks
+        """
         def on_send_temp(msg):
+            """Callback function for `send_temp` command."""
             requests.post(self.api_urlv1 + "/temperatures",
                           json={"node": self.node_url, "value": msg})
 
         def on_send_pir(_):
+            """Callback function for `send_pir` command."""
             requests.post(self.api_urlv1 + "/pirs",
                           json={"node": self.node_url})
 
         def on_request_uid_status(msg):
+            """Callback function for `request_uid_status` command."""
             node_id = self.node_url.split("/")[-1]
             req = requests.get(self.api_url_for_unlock + "/checkpermission/"
                                + node_id + "/" + msg)

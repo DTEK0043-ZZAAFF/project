@@ -59,6 +59,11 @@ class CmdEvents(threading.Thread):
         self.debug_callbacks.append(func)
 
     def __message_type_valid(self, message_type):
+        """Check if `message_type` is found on PyCmdMessenger command list.
+
+        Args:
+            message_type: type to check
+        """
         for command in self.cmd_messenger.commands:
             if command[0] == message_type:
                 return True

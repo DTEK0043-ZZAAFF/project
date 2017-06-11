@@ -87,10 +87,11 @@ def main():
     arduino = PyCmdMessenger.ArduinoBoard(args.com, baud_rate=9600)
     cmd_messenger = PyCmdMessenger.CmdMessenger(arduino, COMMANDS)
 
-    # Setup extra server for incoming commands. Used to receive command
-    # through TCP socket.
+    # Setup extra server for incoming commands. Send received messages
+    # to Arduino node which will parse messages. See node code for
+    # supported messages
     logger.info("Initializing internal command handler")
-    MsgServer.init_msg_server(cmd_messenger)
+    MsgServer.init_msg_server(lambda msg: cmd_messenger.send("send_mock", msg))
 
     # Register basic event handlers: logging messges from arduino node
     # and if doing debug logging log all messages received from arduino
