@@ -1,37 +1,40 @@
-# Usage with Arduino
+# Description
+This repository contains Arduino and gateway code for DTEK0043 course project.
+Backend code is available in https://github.com/DTEK0043-ZZAAFF/backend
 
+# License
+See source files for their respective license. Almost all is MIT licensed
+
+All other files including documentation files: All rights reserved
+
+# Notes for Arduino code
 1) Install dependencies:
  * https://github.com/thefekete/LM75
  * https://github.com/thijse/Arduino-CmdMessenger
-   * This library might require patch included in extras folder
-   * TODO: test and document
 
 2) Open iot-project/iot-project.ino with Arduino IDE
 
 3) Test
  * Upload into Arduino
- * install python dependencies
+
+# Notes for python code
+ * install missing python dependencies
    * `pip install pyserial`
    * `pip install requests`
- * Run gateway.py
+   * `pip install paho-mqtt`
+ * Run gateway.py with valid set of arguments. Execute `python gateway.py --help`
+   to see list of arguments
 
 # Usage with platformIO
-1) Install dependencies into Arduino IDE
-   * Arduino-CmdMessenger requires patch mentioned in Arduino notes because library is shipped with dependencies required for example codes.
-2) Build/Run
-
-# Gateway
-TBD
+Open cloned directory as document. If using Arduino-CmdMessenger library from
+Arduino's library directory Arduino-CmdMessenger/library.json dependencies must
+be removed.
 
 # Notes
 * Google docs document: https://docs.google.com/document/d/1KoYdoJeS-a73kG0KdFZBGeugX506nv0dPDT2QDdJJvI/edit?usp=sharing
-* Notes for lab usage: https://github.com/DTEK0043-ZZAAFF/project/blob/master/Notes-for-k127.md
+* Notes for lab room usage: https://github.com/DTEK0043-ZZAAFF/project/blob/master/Notes-for-k127.md
 
 ## Fixed version of PyCmdMessenger
 Port to 2.7 was broken. Fixed version: https://github.com/DTEK0043-ZZAAFF/PyCmdMessenger/tree/python27
 
 To simplify code process I have imported copy of the library into this repo
-
-# TODO
-* gateway.pl: Write HTTP poll to monitor unlock requests initiated from backend
-* Use AWS IoT / some other backend / at least send data to AWS IoT for later use
