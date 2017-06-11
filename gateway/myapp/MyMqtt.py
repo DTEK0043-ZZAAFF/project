@@ -1,4 +1,9 @@
 """ Encapsulates MQTT initialization and callbacks """
+
+__author__ = "Janne Kujanpää"
+__copyright__ = "Copyright (c) 2017 Janne Kujanpää"
+__license__ = "MIT"
+
 import logging
 from urlparse import urlparse
 

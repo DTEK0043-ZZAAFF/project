@@ -1,4 +1,9 @@
 """Event handler for PyCmdMessenger."""
+
+__author__ = "Janne Kujanpää"
+__copyright__ = "Copyright (c) 2017 Janne Kujanpää"
+__license__ = "MIT"
+
 import logging
 import collections
 import threading

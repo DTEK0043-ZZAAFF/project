@@ -1,4 +1,13 @@
 """Encapsulates REST initialization and REST related callbacks."""
+
+__author__ = "Janne Kujanpää"
+__copyright__ = "Copyright (c) 2017 Janne Kujanpää"
+__license__ = "MIT"
+
+#
+# requests library is licensed with Apache 2.0
+#
+
 import json
 import logging
 import sys

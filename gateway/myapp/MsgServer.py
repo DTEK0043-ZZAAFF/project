@@ -1,4 +1,9 @@
 """Message server for runtime mock messages."""
+
+__author__ = "Janne Kujanpää"
+__copyright__ = "Copyright (c) 2017 Janne Kujanpää"
+__license__ = "MIT"
+
 import asyncore
 import logging
 import socket
