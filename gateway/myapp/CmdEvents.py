@@ -98,7 +98,7 @@ class CmdEvents(threading.Thread):
                 try:
                     callback(message)
                 except Exception: #pylint: disable=broad-except
-                    self.logger.warn("debug callback function failed: ")
+                    self.logger.warn("debug callback function failed: ", exc_info=True)
 
             # find the callbacks
             callback_fns = self.callbacks.get(message[0])
@@ -108,7 +108,7 @@ class CmdEvents(threading.Thread):
                 try:
                     self.default_callback_fn(message[0], message[1])
                 except Exception: #pylint: disable=broad-except
-                    self.logger.warn("default callback function failed: ")
+                    self.logger.warn("default callback function failed: ", exc_info=True)
                 return
 
             # Mangle message for callback method
@@ -124,7 +124,7 @@ class CmdEvents(threading.Thread):
                 try:
                     callback_fn(msg)
                 except Exception: #pylint: disable=broad-except
-                    self.logger.warn("callback function failed: ")
+                    self.logger.warn("callback function failed: ", exc_info=True)
 
     def __default_callback(self, mtype, msg):
         self.logger.warn("Unknown message_type: %s", mtype)
