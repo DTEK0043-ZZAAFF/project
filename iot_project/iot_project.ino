@@ -105,10 +105,10 @@ void loop() {
       delay(50);
       digitalWrite(ledPin, LOW);    // turn the LED off by making the voltage LOW
       delay(50);
+    }
   } else {
     delay(500);
   }
-}
 
   // read CmdMessenger. Callback functions called there are messages in Serial FIFO
   c.feedinSerialData();

@@ -119,6 +119,7 @@ def main():
     parser.add_argument("--mymqtt", type=str, metavar="PROTO://ADDRESS:PORT/DIR",
                         help="Enable simple mqtt subcribe")
     parser.add_argument("--lm75", action="store_true", help="Use LM75 sensor")
+    parser.add_argument("--pir", action="store_true", help="Enable PIR sensor")
     parser.add_argument("--name", default="default_node", metavar="NAME",
                         help="Name of the node")
     parser.add_argument("com", default="/dev/ttyACM0", metavar="COM_PORT",
@@ -171,6 +172,8 @@ def main():
     logger.info("enabling sensors")
     if args.lm75:
         cmd_messenger.send("request_lm75", True)
+    if args.pir:
+        cmd_messenger.send("request_pir", True)
 
     logger.info("All done. Processing Arduino and MQTT messages")
 
