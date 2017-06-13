@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Encapsulates REST initialization and REST related callbacks."""
 
 __author__ = "Janne Kujanpää"

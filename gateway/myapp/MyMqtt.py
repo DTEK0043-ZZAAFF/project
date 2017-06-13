@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """ Encapsulates MQTT initialization and callbacks """
 
 __author__ = "Janne Kujanpää"

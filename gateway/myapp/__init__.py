@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Helper modules and classes for gateway.pyself."""
 
 __author__ = "Janne Kujanpää"

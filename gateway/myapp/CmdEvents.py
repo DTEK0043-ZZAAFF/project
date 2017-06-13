@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Event handler for PyCmdMessenger."""
 
 __author__ = "Janne Kujanpää"

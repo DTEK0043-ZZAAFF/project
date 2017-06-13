@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Message server for runtime mock messages."""
 
 __author__ = "Janne Kujanpää"

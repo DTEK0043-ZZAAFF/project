@@ -1,4 +1,5 @@
 #!/usr/bin/python2
+# -*- coding: utf-8 -*-
 """IoT gateway for DTEL0043.
 
 The main file: contain main function which binds all other classes to make
@@ -7,6 +8,7 @@ magic happen.
 See other modules for more information about source code.
 For other info consult READMEs, NOTES and project documentation.
 """
+from __future__ import print_function
 
 __author__ = "Janne Kujanpää"
 __version__ = "0.0.1"
@@ -56,8 +58,6 @@ SOFTWARE.
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
-from __future__ import print_function
 import argparse
 import logging
 import sys
