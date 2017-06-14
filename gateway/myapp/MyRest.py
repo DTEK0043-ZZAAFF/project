@@ -75,10 +75,10 @@ class MyRest(object):
             requests.post(self.api_urlv1 + "/temperatures",
                           json={"node": self.node_url, "value": msg})
 
-        def on_send_pir(_):
+        def on_send_pir(msg):
             """Callback function for `send_pir` command."""
             requests.post(self.api_urlv1 + "/pirs",
-                          json={"node": self.node_url})
+                          json={"node": self.node_url, "up": msg})
 
         def on_request_uid_status(msg):
             """Callback function for `request_uid_status` command."""

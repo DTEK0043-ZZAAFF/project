@@ -72,13 +72,13 @@ from myapp import MyMqtt
 
 COMMANDS = [["send_log", "s"],
             ["send_temp", "d"],
-            ["send_pir", ""],   # TODO: bug here, does not allow None
+            ["send_pir", "?"],
             ["request_lm75", "?"],
             ["send_mock", "s"],
             ["request_uid_status", "s"],
             ["send_uid_status", "?"],
             ["request_pir", "?"],
-            ["force_unlock", ""]]
+            ["force_unlock", ""]] # TODO: bug here, does not allow None
 """Methods for CmdMessenger
 
 PyCmdMessenger uses this to check that incoming data values have correct types

@@ -73,6 +73,9 @@ static unsigned long lockOpenTime;
 static const int lockOpenTimeout = 5000;
 static unsigned long lastMeasure = 0;
 
+static boolean mockedPirUp = false;
+static boolean mockedPirDown = false;
+
 // hardware abstractions
 LM75 lm75;
 CmdMessenger c = CmdMessenger(Serial,',',';','/');
@@ -127,15 +130,20 @@ void loop() {
     }
   }
 
-  if (enable_pir) {
+  // note: when using mocked PIR state changes previous and input states are
+  // ignored.
+  if (enable_pir || mockedPirUp || mockedPirDown) {
     int val = digitalRead(pirPin);
-    if (prev_pir_state == LOW && val == HIGH) {
+    if ((prev_pir_state == LOW && val == HIGH) || mockedPirUp) {
       // rising edge, movement detected. send message to gateway
-      c.sendCmd(send_pir);
+      c.sendBinCmd(send_pir, true);
       prev_pir_state = val;
-    } else if (prev_pir_state == HIGH && val == LOW) {
+      mockedPirUp = false;
+    } else if ((prev_pir_state == HIGH && val == LOW) || mockedPirDown) {
       // falling edge
+      c.sendBinCmd(send_pir, false);
       prev_pir_state = val;
+      mockedPirDown = false;
     }
   }
 
@@ -221,15 +229,14 @@ void on_send_mock() {
 
   if (strcasecmp(cmd, "piru") == 0) {
     if (prev_pir_state == LOW) {
-      c.sendCmd(send_pir);
-      prev_pir_state = HIGH;
+      mockedPirUp = true;
     }
     return;
   }
 
   if (strcasecmp(cmd, "pird") == 0) {
     if (prev_pir_state == HIGH) {
-      prev_pir_state = LOW;
+      mockedPirDown = true;
     }
     return;
   }
