@@ -1,7 +1,9 @@
+import json
 import sys
 from urlparse import urlparse
 
 import paho.mqtt.client as mqtt
+from pyfiglet import Figlet
 
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
@@ -13,10 +15,16 @@ def on_connect(client, userdata, flags, rc):
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
-    print(msg.topic+" "+str(msg.payload))
-
-
+    if "/pir" in msg.topic:
+        value = json.loads(msg.payload)["value"]
+        if value:
+            print(f.renderText("Movement detected!"))
+        else:
+            print(f.renderText("Movement end!"))
+    else:
+        print(msg.topic + ": " + str(msg.payload))
 # Start
+f = Figlet(font='slant', width=120)
 url = urlparse(sys.argv[1])
 if url.scheme == "tcp":
     transport = "tcp"
