@@ -161,7 +161,7 @@ def main():
     # Initialize MQTT: Subscribe one MQTT message channel.
     logger.info("Initializing MQTT")
     if args.mymqtt != None:
-        MyMqtt.init_mqtt(cmd_messenger, args.mymqtt, args.name)
+        MyMqtt.init_mqtt(cmd_messenger, event_handler, args.mymqtt, args.name)
 
     # Start event handler loop. Messages from Serial port are now
     # being polled

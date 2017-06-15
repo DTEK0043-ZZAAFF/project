@@ -10,12 +10,13 @@ __license__ = "MIT"
 # Eclipse Distribution License 1.0
 #
 
+import json
 import logging
 from urlparse import urlparse
 
 import paho.mqtt.client as mqtt
 
-def init_mqtt(cmd_messenger, mqtt_url, node_name):
+def init_mqtt(cmd_messenger, event_handler, mqtt_url, node_name):
     """
     Initializes MQTT.
 
@@ -27,6 +28,8 @@ def init_mqtt(cmd_messenger, mqtt_url, node_name):
         mqtt_url: URL to connect
         node_name: name of the node
     """
+
+    # prepare MQTT
     url = urlparse(mqtt_url)
     client = mqtt.Client()
     client.on_connect = __on_connect(node_name)
@@ -38,6 +41,12 @@ def init_mqtt(cmd_messenger, mqtt_url, node_name):
     else:
         raise Exception, "Unsupport URL scheme: " + mqtt_url
     client.loop_start()
+
+    def __on_send_pir(message):
+        client.publish("/" + node_name + "/pir", payload=json.dumps({"value": message}))
+
+    # add event_handler callbacks
+    event_handler.add_callback("send_pir", __on_send_pir)
 
 def __on_connect(name):
     """ Creates callback function which is called on successful MQTT connect """
