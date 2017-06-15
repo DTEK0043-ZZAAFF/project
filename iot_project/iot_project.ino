@@ -137,12 +137,12 @@ void loop() {
     if ((prev_pir_state == LOW && val == HIGH) || mockedPirUp) {
       // rising edge, movement detected. send message to gateway
       c.sendBinCmd(send_pir, true);
-      prev_pir_state = val;
+      prev_pir_state = HIGH;
       mockedPirUp = false;
     } else if ((prev_pir_state == HIGH && val == LOW) || mockedPirDown) {
       // falling edge
       c.sendBinCmd(send_pir, false);
-      prev_pir_state = val;
+      prev_pir_state = LOW;
       mockedPirDown = false;
     }
   }
@@ -210,8 +210,8 @@ void on_request_pir() {
  */
 void on_send_mock() {
   // note UIDs usually have fixed length
-  char* uid = c.readStringArg();
-  char* cmd = strtok(uid, ":");
+  char* message = c.readStringArg();
+  char* cmd = strtok(message, ":");
   char* msg = strtok(NULL, "");
 
   if (strcasecmp(cmd, "mock") == 0) {

@@ -127,5 +127,4 @@ class CmdEvents(threading.Thread):
                     self.logger.warn("callback function failed: ", exc_info=True)
 
     def __default_callback(self, mtype, msg):
-        self.logger.warn("Unknown message_type: %s", mtype)
-        self.logger.warn("with message: %s", msg)
+        self.logger.warn("Unregistered message_type: %s msg: %s", mtype, msg)
