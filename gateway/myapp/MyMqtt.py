@@ -37,6 +37,7 @@ def init_mqtt(cmd_messenger, event_handler, mqtt_url, node_name):
     # supports only plain TCP connections. Should support TLS websockets over
     # https!
     if url.scheme == "tcp":
+        client.username_pw_set(url.username, url.password)
         client.connect(url.hostname, url.port)
     else:
         raise Exception, "Unsupport URL scheme: " + mqtt_url

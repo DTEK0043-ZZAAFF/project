@@ -20,6 +20,7 @@ client.on_connect = on_connect
 client.on_message = on_message
 url = urlparse(sys.argv[1])
 if url.scheme == "tcp":
+    client.username_pw_set(url.username, url.password)
     client.connect(url.hostname, url.port, 60)
 else:
     raise Exception, "Unsupport URL scheme: " + mqtt_url
