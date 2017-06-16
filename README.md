@@ -22,6 +22,7 @@ All other files including documentation files: All rights reserved
    * `pip install pyserial`
    * `pip install requests`
    * `pip install paho-mqtt`
+   * `pip install pyfiglet` used by external script
  * Run gateway.py with valid set of arguments. Execute `python gateway.py --help`
    to see list of arguments
 

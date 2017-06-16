@@ -37,6 +37,7 @@ MQTT server and run. I personally used HiveMQ
 
 ## Install libraries and run gateway
 * `pip install --user paho-mqtt`
+* `pip install --user pyfiglet` used by external helper/debug
 * gateway is now ready to run with command `python gateway.py ...`
   E.g. `python --myrest http://localhost:8080 --verbosity degub --mymqtt tcp://localhost:1883 --lm75 --name foo /dev/ttyACM0`
 * Everything should be working now. Something is available in http://localhost:8080/
