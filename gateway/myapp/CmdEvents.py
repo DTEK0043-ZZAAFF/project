@@ -7,7 +7,11 @@ __license__ = "MIT"
 
 import logging
 import collections
+import sys
 import threading
+import thread
+
+from serial import SerialException
 
 class CmdEvents(threading.Thread):
     """Event hander class for PyCmdMessenger.
@@ -30,15 +34,8 @@ class CmdEvents(threading.Thread):
         self.cmd_messenger = cmd_messenger
         self.callbacks = collections.defaultdict(list)
         self.debug_callbacks = []
-        self.default_callback_fn = self.__default_callback
-
-    def set_default_callback(self, callback):
-        """Set default callback.
-
-        Args:
-            callback: callback function to call if no matching functions are found
-        """
-        self.default_callback_fn = callback
+        self.default_callback = self.__default_callback
+        self.default_receive_error_callback = self.__default_receive_error_callback
 
     def add_callback(self, message_type, func):
         """Add callback function for defined type.
@@ -86,9 +83,17 @@ class CmdEvents(threading.Thread):
         # and return None
         try:
             message = self.cmd_messenger.receive()
-        except Exception: #pylint: disable=broad-except
-            message = None
+        except ValueError:
+            # edge case. in some cased when starting Arduino it sends
+            # few bytes of random(?) data. Ignore error
             self.logger.warn("Reading message failed: ", exc_info=True)
+        except SerialException:
+            # Run callback when device is disconnected
+            self.default_receive_error_callback()
+        except Exception: #pylint: disable=broad-except
+            # Run callback when unknown error happened while Reading
+            # data from device
+            self.default_receive_error_callback()
 
         if message is None:
             pass
@@ -97,7 +102,7 @@ class CmdEvents(threading.Thread):
             for callback in self.debug_callbacks:
                 try:
                     callback(message)
-                except Exception: #pylint: disable=broad-except
+                except SerialException: #pylint: disable=broad-except
                     self.logger.warn("debug callback function failed: ", exc_info=True)
 
             # find the callbacks
@@ -106,7 +111,7 @@ class CmdEvents(threading.Thread):
             # callbacks
             if callback_fns is None:
                 try:
-                    self.default_callback_fn(message[0], message[1])
+                    self.default_callback(message[0], message[1])
                 except Exception: #pylint: disable=broad-except
                     self.logger.warn("default callback function failed: ", exc_info=True)
                 return
@@ -128,3 +133,8 @@ class CmdEvents(threading.Thread):
 
     def __default_callback(self, mtype, msg):
         self.logger.warn("Unregistered message_type: %s msg: %s", mtype, msg)
+
+    def __default_receive_error_callback(self):
+        self.logger.warn("Reading message failed: ", exc_info=True)
+        thread.interrupt_main()
+        sys.exit()

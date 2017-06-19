@@ -50,7 +50,7 @@ class CmdEventsTestCase(unittest.TestCase):
         fn1 = Mock()
         fn2 = Mock()
         cmd_events.add_callback("foo", fn1)
-        cmd_events.set_default_callback(fn2)
+        cmd_events.default_callback = fn2
 
         mocked_arduino.read.side_effect = list("0,asdf;") + list("1,") + [chr(0x01)] + list(";")
         cmd_events._CmdEvents__read_once()
