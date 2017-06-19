@@ -20,6 +20,8 @@ class CmdEvents(threading.Thread):
 
     Create instance, add callbacks if needed and start background thread with
     `start()`.
+
+    TODO: document callbacks
     """
 
     def __init__(self, cmd_messenger):
@@ -86,7 +88,9 @@ class CmdEvents(threading.Thread):
         except ValueError:
             # edge case. in some cased when starting Arduino it sends
             # few bytes of random(?) data. Ignore error
+            # TODO: proper fix?
             self.logger.warn("Reading message failed: ", exc_info=True)
+            message = None
         except SerialException:
             # Run callback when device is disconnected
             self.default_receive_error_callback()
