@@ -51,16 +51,16 @@ def init_mqtt(cmd_messenger, event_handler, mqtt_url, node_name):
 
 def __on_connect(name):
     """ Creates callback function which is called on successful MQTT connect """
-    def call(client, userdata, rc): # pylint: disable=invalid-name,unused-argument
+    def __call(client, userdata, rc): # pylint: disable=invalid-name,unused-argument
         logging.debug("MQTT client connected, subscribing ....")
         client.subscribe("/" + name +"/unlock")
-    return call
+    return __call
 
 def __on_message(cmd_messenger):
     """ Creates callback function which is called on receiving MQTT message """
-    def call(client, userdata, msg): # pylint: disable=invalid-name,unused-argument
+    def __call(client, userdata, msg): # pylint: disable=invalid-name,unused-argument
         # NOTE: if we subscribe more topics we must check topis before
         # forwarding call to `PyCmdMessenger` instance
         logging.info("Got force_unlock message for this node")
         cmd_messenger.send("force_unlock")
-    return call
+    return __call

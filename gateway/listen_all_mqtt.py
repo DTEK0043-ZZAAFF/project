@@ -33,7 +33,6 @@ SOFTWARE.
 import argparse
 import logging
 import json
-import sys
 from urlparse import urlparse
 
 import paho.mqtt.client as mqtt
@@ -42,6 +41,7 @@ from pyfiglet import Figlet
 logger = logging.getLogger(__name__)
 
 def main():
+    """Execute helped script."""
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbosity", type=str, default="INFO",
                         choices=["info", "debug"], help="increase output verbosity")
@@ -69,7 +69,7 @@ def main():
         client.username_pw_set(url.username, url.password)
         client.connect(url.hostname, url.port, 60)
     else:
-        raise Exception, "Unsupport URL scheme: " + mqtt_url
+        raise Exception, "Unsupport URL scheme: " + args.url
 
     # Blocking call that processes network traffic, dispatches callbacks and
     # handles reconnecting.
@@ -98,7 +98,7 @@ def __on_message(client, userdata, msg):
         else:
             print(userdata["figlet"].renderText("Movement end!"))
     elif "/unlock" in msg.topic:
-            print(userdata["figlet"].renderText("Forced unlock!"))
+        print(userdata["figlet"].renderText("Forced unlock!"))
     else:
         print(msg.topic + ": " + str(msg.payload))
 

@@ -102,38 +102,42 @@ class CmdEvents(threading.Thread):
         if message is None:
             pass
         else:
-            # first pass message to debug
-            for callback in self.debug_callbacks:
-                try:
-                    callback(message)
-                except SerialException: #pylint: disable=broad-except
-                    self.logger.warn("debug callback function failed: ", exc_info=True)
+            self.__handle_message(message)
 
-            # find the callbacks
-            callback_fns = self.callbacks.get(message[0])
-            # if call back for type is not found process message with default
-            # callbacks
-            if callback_fns is None:
-                try:
-                    self.default_callback(message[0], message[1])
-                except Exception: #pylint: disable=broad-except
-                    self.logger.warn("default callback function failed: ", exc_info=True)
-                return
 
-            # Mangle message for callback method
-            # Implementor of callback method knows message type
-            if not message[1]:
-                msg = None
-            elif len(message[1]) == 1:
-                msg = message[1][0]
-            else:
-                msg = message[1]
-            # finally pass message to callback functions
-            for callback_fn in callback_fns:
-                try:
-                    callback_fn(msg)
-                except Exception: #pylint: disable=broad-except
-                    self.logger.warn("callback function failed: ", exc_info=True)
+    def __handle_message(self, message):
+        # first pass message to debug
+        for callback in self.debug_callbacks:
+            try:
+                callback(message)
+            except SerialException: #pylint: disable=broad-except
+                self.logger.warn("debug callback function failed: ", exc_info=True)
+
+        # find the callbacks
+        callback_fns = self.callbacks.get(message[0])
+        # if call back for type is not found process message with default
+        # callbacks
+        if callback_fns is None:
+            try:
+                self.default_callback(message[0], message[1])
+            except Exception: #pylint: disable=broad-except
+                self.logger.warn("default callback function failed: ", exc_info=True)
+            return
+
+        # Mangle message for callback method
+        # Implementor of callback method knows message type
+        if not message[1]:
+            msg = None
+        elif len(message[1]) == 1:
+            msg = message[1][0]
+        else:
+            msg = message[1]
+        # finally pass message to callback functions
+        for callback_fn in callback_fns:
+            try:
+                callback_fn(msg)
+            except Exception: #pylint: disable=broad-except
+                self.logger.warn("callback function failed: ", exc_info=True)
 
     def __default_callback(self, mtype, msg):
         self.logger.warn("Unregistered message_type: %s msg: %s", mtype, msg)
