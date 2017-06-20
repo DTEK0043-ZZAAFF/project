@@ -32,7 +32,6 @@ Arduino's library directory Arduino-CmdMessenger/library.json dependencies must
 be removed.
 
 # Notes
-* Google docs document: https://docs.google.com/document/d/1KoYdoJeS-a73kG0KdFZBGeugX506nv0dPDT2QDdJJvI/edit?usp=sharing
 * Notes for lab room usage: https://github.com/DTEK0043-ZZAAFF/project/blob/master/Notes-for-k127.md
 
 ## Fixed version of PyCmdMessenger
