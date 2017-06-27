@@ -32,6 +32,7 @@ Arduino's library directory Arduino-CmdMessenger/library.json dependencies must
 be removed.
 
 # Notes
+* Upload code with Arduino CLI: `arduino -v --upload --board arduino:avr:mega --port /dev/ttyACM0 iot_project/iot_project.ino` Note: change board type and port if needed
 * Notes for lab room usage: https://github.com/DTEK0043-ZZAAFF/project/blob/master/Notes-for-k127.md
 
 ## Fixed version of PyCmdMessenger
