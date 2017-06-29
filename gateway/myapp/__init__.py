@@ -31,3 +31,5 @@ from myapp.CmdEvents import CmdEvents
 import myapp.MsgServer
 import myapp.MyMqtt
 from myapp.MyRest import MyRest
+from myapp.MyAws import MyAws
+from myapp.MyPyCmdMessengerMock import MyPyCmdMessengerMock

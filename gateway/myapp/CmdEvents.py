@@ -24,7 +24,7 @@ class CmdEvents(threading.Thread):
     TODO: document callbacks
     """
 
-    def __init__(self, cmd_messenger):
+    def __init__(self, cmd_messenger, disable_poll=False):
         """Create new instance.
 
         Args:
@@ -34,6 +34,7 @@ class CmdEvents(threading.Thread):
         self.daemon = True
         self.logger = logging.getLogger("CmdEvents")
         self.cmd_messenger = cmd_messenger
+        self.disable_poll = disable_poll
         self.callbacks = collections.defaultdict(list)
         self.debug_callbacks = []
         self.default_callback = self.__default_callback
@@ -76,8 +77,9 @@ class CmdEvents(threading.Thread):
 
     def run(self):
         """Implement inherited method."""
-        while True:
-            self.__read_once()
+        if not self.disable_poll:
+            while True:
+                self.__read_once()
 
     def __read_once(self):
         """Execute `CmdMessenger.receive()` once."""
@@ -104,6 +106,12 @@ class CmdEvents(threading.Thread):
         else:
             self.__handle_message(message)
 
+    def inject_data(self, label, message):
+        """Inject data.
+
+        Emulates received data
+        """
+        self.__handle_message([label, message, None])
 
     def __handle_message(self, message):
         # first pass message to debug

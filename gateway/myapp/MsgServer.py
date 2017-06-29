@@ -16,7 +16,7 @@ class _MsgServer(asyncore.dispatcher):
     Sends messages with given function. Caller selects function to use.
     """
 
-    def __init__(self, host, port, func):
+    def __init__(self, host, port, callback):
         """Create new instance.
 
         Args:
@@ -26,7 +26,7 @@ class _MsgServer(asyncore.dispatcher):
         """
         asyncore.dispatcher.__init__(self)
         self.logger = logging.getLogger("MsgServer")
-        self.func = func
+        self.callback = callback
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.bind((host, port))
         self.logger.debug("Binding to %s", self.socket.getsockname)
@@ -38,7 +38,7 @@ class _MsgServer(asyncore.dispatcher):
         if pair is not None:
             sock, addr = pair
             self.logger.debug("Incoming connection from %s", repr(addr))
-            _ = _MsgHandler(sock, self.func)
+            _ = _MsgHandler(sock, self.callback)
 
 class _MsgHandler(asyncore.dispatcher):
     """Message handler for MsgServer."""
@@ -59,10 +59,10 @@ class _MsgHandler(asyncore.dispatcher):
     def handle_read(self):
         """Implement inherited class."""
         data = self.recv(self.chunk_size)
-        # TODO: add a way to contol gateway.py
-        # e.g. enable sensors without command line args
         self.logger.debug("Read: %s", data)
+        # send data to external callback
         self.func(data)
+        # send ack and close TCP
         self.send("OK")
         self.close()
 

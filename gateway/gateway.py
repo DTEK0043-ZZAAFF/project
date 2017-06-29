@@ -69,6 +69,8 @@ from myapp import CmdEvents
 from myapp import MsgServer
 from myapp import MyRest
 from myapp import MyMqtt
+from myapp import MyAws
+from myapp import MyPyCmdMessengerMock
 
 COMMANDS = [["send_log", "s"],
             ["send_temp", "d"],
@@ -107,6 +109,22 @@ def __on_send_log(msg):
     """
     logging.getLogger("arduino").info(msg)
 
+def __msgserver_callback(cmd_events):
+    def __function(data):
+        splitted_data = data.split(":", 2)
+        if splitted_data[0].lower() == "arduino":
+            cmd_events.cmd_messenger.send("send_mock", splitted_data[1])
+        elif splitted_data[0].lower() == "local":
+            if splitted_data[1] == "piru":
+                cmd_events.inject_data("send_pir", [True])
+            elif splitted_data[1] == "pird":
+                cmd_events.inject_data("send_pir", [False])
+            else:
+                pass
+        else:
+            logging.getLogger(__name__).warn("Unknown command prefix")
+    return __function
+
 def main():
     """Run the app. Initializes all components and starts background threads."""
     logger = logging.getLogger("main")
@@ -118,12 +136,16 @@ def main():
                         help="Enable online storage")
     parser.add_argument("--mymqtt", type=str, metavar="PROTO://ADDRESS:PORT/DIR",
                         help="Enable simple mqtt subcribe")
+    parser.add_argument("--aws", type=str, metavar="PATH/TO/CONFIG_DIR",
+                        help="Enable AWS IoT")
     parser.add_argument("--lm75", action="store_true", help="Use LM75 sensor")
     parser.add_argument("--pir", action="store_true", help="Enable PIR sensor")
     parser.add_argument("--name", default="default_node", metavar="NAME",
                         help="Name of the node")
-    parser.add_argument("com", default="/dev/ttyACM0", metavar="COM_PORT",
-                        help="COM port to use")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--noarduino", action="store_true", help="Disable Arduino node code")
+    group.add_argument("--com", default="/dev/ttyACM0", metavar="COM_PORT",
+                       help="COM port to use", required=False)
     args = parser.parse_args()
 
     # setup logger
@@ -134,22 +156,26 @@ def main():
 
     # Setup hardware. PyCmdMessenger is used as abstraction layer
     logger.info("Setting up hardware")
-    arduino = PyCmdMessenger.ArduinoBoard(args.com, baud_rate=9600)
-    cmd_messenger = PyCmdMessenger.CmdMessenger(arduino, COMMANDS)
+    if not args.noarduino:
+        arduino = PyCmdMessenger.ArduinoBoard(args.com, baud_rate=9600)
+        cmd_messenger = PyCmdMessenger.CmdMessenger(arduino, COMMANDS)
+    else:
+        # setup runtime mockup!
+        cmd_messenger = MyPyCmdMessengerMock(COMMANDS) # pylint: disable=redefined-variable-type
+
+    # Register basic event handlers: logging messges from arduino node
+    # and if doing debug logging log all messages received from arduino
+    logger.info("Initializing CmdMessenger event handler")
+    event_handler = CmdEvents(cmd_messenger, args.noarduino)
+    event_handler.add_callback("send_log", __on_send_log)
+    if logger.isEnabledFor(logging.DEBUG):
+        event_handler.add_debug_callback(__on_debug)
 
     # Setup extra server for incoming commands. Send received messages
     # to Arduino node which will parse messages. See node code for
     # supported messages
     logger.info("Initializing internal command handler")
-    MsgServer.init_msg_server(lambda msg: cmd_messenger.send("send_mock", msg))
-
-    # Register basic event handlers: logging messges from arduino node
-    # and if doing debug logging log all messages received from arduino
-    logger.info("Initializing CmdMessenger event handler")
-    event_handler = CmdEvents(cmd_messenger)
-    event_handler.add_callback("send_log", __on_send_log)
-    if logger.isEnabledFor(logging.DEBUG):
-        event_handler.add_debug_callback(__on_debug)
+    MsgServer.init_msg_server(__msgserver_callback(event_handler))
 
     # Initialize simple REST interface. Endpoint is out Java backend.
     # Note: if `MyRest.Myrest` exits process if connection fails
@@ -162,6 +188,13 @@ def main():
     logger.info("Initializing MQTT")
     if args.mymqtt != None:
         MyMqtt.init_mqtt(cmd_messenger, event_handler, args.mymqtt, args.name)
+
+    # Load AWS IoT config too much arguments for command line
+    # See example configuration in TODO file
+    if args.aws:
+        # inject conf
+        aws = MyAws(args.aws, cmd_messenger)
+        # start aws message loop in background thread
 
     # Start event handler loop. Messages from Serial port are now
     # being polled

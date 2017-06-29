@@ -52,7 +52,7 @@ def init_mqtt(cmd_messenger, event_handler, mqtt_url, node_name):
 def __on_connect(name):
     """ Creates callback function which is called on successful MQTT connect """
     def __call(client, userdata, rc): # pylint: disable=invalid-name,unused-argument
-        logging.debug("MQTT client connected, subscribing ....")
+        logging.debug("MQTT client connected rc: %s, subscribing ....", rc)
         client.subscribe("/" + name +"/unlock")
     return __call
 
