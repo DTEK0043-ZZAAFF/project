@@ -189,12 +189,9 @@ def main():
     if args.mymqtt != None:
         MyMqtt.init_mqtt(cmd_messenger, event_handler, args.mymqtt, args.name)
 
-    # Load AWS IoT config too much arguments for command line
-    # See example configuration in TODO file
+    # Load AWS IoT config and certs
     if args.aws:
-        # inject conf
-        aws = MyAws(args.aws, cmd_messenger)
-        # start aws message loop in background thread
+        aws = MyAws(args.aws, event_handler, args.name)
 
     # Start event handler loop. Messages from Serial port are now
     # being polled
